@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Register - MediScript AI{% endblock %}
+
+{% block public_content %}
+<div class="container">
+    <div class="row justify-content-center min-vh-100 align-items-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <h2 class="fw-bold text-primary">MediScript AI</h2>
+                        <p class="text-muted">Create your doctor account</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('register') }}">
+                        <!-- Personal Information -->
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">Full Name *</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" 
+                                   value="{{ request.form.full_name }}" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Username *</label>
+                                    <input type="text" class="form-control" id="username" name="username" 
+                                           value="{{ request.form.username }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           value="{{ request.form.email }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Password *</label>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                    <div class="form-text">Minimum 6 characters</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="confirm_password" class="form-label">Confirm Password *</label>
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Professional Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="license_number" class="form-label">Medical License Number</label>
+                                    <input type="text" class="form-control" id="license_number" name="license_number" 
+                                           value="{{ request.form.license_number }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="specialization" class="form-label">Specialization</label>
+                                    <select class="form-select" id="specialization" name="specialization">
+                                        <option value="">Select Specialization</option>
+                                        <option value="General Physician" {{ 'selected' if request.form.specialization == 'General Physician' }}>General Physician</option>
+                                        <option value="Cardiologist" {{ 'selected' if request.form.specialization == 'Cardiologist' }}>Cardiologist</option>
+                                        <option value="Dermatologist" {{ 'selected' if request.form.specialization == 'Dermatologist' }}>Dermatologist</option>
+                                        <option value="Pediatrician" {{ 'selected' if request.form.specialization == 'Pediatrician' }}>Pediatrician</option>
+                                        <option value="Gynecologist" {{ 'selected' if request.form.specialization == 'Gynecologist' }}>Gynecologist</option>
+                                        <option value="Orthopedic" {{ 'selected' if request.form.specialization == 'Orthopedic' }}>Orthopedic</option>
+                                        <option value="Neurologist" {{ 'selected' if request.form.specialization == 'Neurologist' }}>Neurologist</option>
+                                        <option value="Psychiatrist" {{ 'selected' if request.form.specialization == 'Psychiatrist' }}>Psychiatrist</option>
+                                        <option value="Dentist" {{ 'selected' if request.form.specialization == 'Dentist' }}>Dentist</option>
+                                        <option value="Other" {{ 'selected' if request.form.specialization == 'Other' }}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Clinic Information -->
+                        <div class="mb-3">
+                            <label for="clinic_name" class="form-label">Clinic/Hospital Name</label>
+                            <input type="text" class="form-control" id="clinic_name" name="clinic_name" 
+                                   value="{{ request.form.clinic_name }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="clinic_address" class="form-label">Clinic Address</label>
+                            <textarea class="form-control" id="clinic_address" name="clinic_address" rows="2">{{ request.form.clinic_address }}</textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="clinic_phone" class="form-label">Clinic Phone</label>
+                                    <input type="tel" class="form-control" id="clinic_phone" name="clinic_phone" 
+                                           value="{{ request.form.clinic_phone }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="clinic_email" class="form-label">Clinic Email</label>
+                                    <input type="email" class="form-control" id="clinic_email" name="clinic_email" 
+                                           value="{{ request.form.clinic_email }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Create Account
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Login Link -->
+                    <div class="text-center mt-4">
+                        <p class="text-muted">
+                            Already have an account? 
+                            <a href="{{ url_for('login') }}" class="text-primary text-decoration-none">Login here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.min-vh-100 {
+    min-height: 100vh;
+}
+.card {
+    border: none;
+    border-radius: 1rem;
+}
+.form-control, .form-select {
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+}
+</style>
+{% endblock %}

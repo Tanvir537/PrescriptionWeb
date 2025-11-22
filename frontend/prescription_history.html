@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Prescription History - MediScript AI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+    <div class="d-block mb-4 mb-md-0">
+        <h2 class="h4"><i class="fas fa-history me-2"></i>Prescription History</h2>
+        <p class="mb-0">View and manage your previous prescriptions</p>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('prescription') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>New Prescription
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow">
+            <div class="card-body">
+                {% if prescriptions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Patient Name</th>
+                                <th>Age/Gender</th>
+                                <th>Diagnosis</th>
+                                <th>Medicines</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prescription in prescriptions %}
+                            <tr>
+                                <td><strong>#{{ prescription.id }}</strong></td>
+                                <td>{{ prescription.created_at[:10] }}</td>
+                                <td>
+                                    <strong>{{ prescription.patient_name }}</strong>
+                                </td>
+                                <td>{{ prescription.patient_age }}/{{ prescription.patient_gender }}</td>
+                                <td>
+                                    <span class="badge bg-info text-dark">{{ prescription.diagnosis[:30] }}{% if prescription.diagnosis|length > 30 %}...{% endif %}</span>
+                                </td>
+                                <td>
+                                    <small>
+                                        {% for medicine in prescription.medications %}
+                                            {{ medicine.name }}{% if not loop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('print_prescription', prescription_id=prescription.id) }}" 
+                                           class="btn btn-outline-primary" target="_blank">
+                                            <i class="fas fa-print"></i> Print
+                                        </a>
+                                        <button type="button" class="btn btn-outline-info view-prescription" 
+                                                data-id="{{ prescription.id }}">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-file-medical fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Prescriptions Found</h4>
+                    <p class="text-muted">You haven't created any prescriptions yet.</p>
+                    <a href="{{ url_for('prescription') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create Your First Prescription
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Prescription Modal -->
+<div class="modal fade" id="viewPrescriptionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Prescription Details - #<span id="prescriptionId"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="prescriptionDetails">
+                <!-- Details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" class="btn btn-primary" id="printPrescriptionBtn" target="_blank">
+                    <i class="fas fa-print me-2"></i>Print Prescription
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // View prescription details
+    document.querySelectorAll('.view-prescription').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const prescriptionId = this.getAttribute('data-id');
+            console.log('Viewing prescription ID:', prescriptionId);
+            
+            fetch(`/api/prescription/${prescriptionId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(prescription => {
+                    console.log('Prescription data loaded:', prescription);
+                    
+                    // Format medications
+                    let medicationsHtml = '';
+                    if (prescription.medications && prescription.medications.length > 0) {
+                        medicationsHtml = `
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Medicine Name</th>
+                                        <th>Dosage</th>
+                                        <th>Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${prescription.medications.map(med => `
+                                        <tr>
+                                            <td>${med.name || 'N/A'}</td>
+                                            <td>${med.dosage || 'N/A'}</td>
+                                            <td>${med.duration || 'N/A'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        `;
+                    } else {
+                        medicationsHtml = '<div class="alert alert-warning">No medications prescribed.</div>';
+                    }
+                    
+                    // Format advice
+                    let adviceHtml = prescription.advice ? 
+                        `<div class="alert alert-info">${prescription.advice.replace(/\n/g, '<br>')}</div>` : 
+                        '<div class="alert alert-secondary">No additional advice provided.</div>';
+                    
+                    // Build modal content
+                    document.getElementById('prescriptionDetails').innerHTML = `
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong>Patient Name:</strong> ${prescription.patient_name}</p>
+                                <p><strong>Age:</strong> ${prescription.patient_age} years</p>
+                                <p><strong>Gender:</strong> ${prescription.patient_gender}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Date:</strong> ${prescription.created_at.slice(0,10)}</p>
+                                <p><strong>Diagnosis:</strong> <span class="badge bg-primary">${prescription.diagnosis}</span></p>
+                            </div>
+                        </div>
+                        <hr>
+                        <h6>Medications:</h6>
+                        ${medicationsHtml}
+                        <hr>
+                        <h6>Advice & Instructions:</h6>
+                        ${adviceHtml}
+                    `;
+                    
+                    // Update prescription ID in title
+                    document.getElementById('prescriptionId').textContent = prescriptionId;
+                    
+                    // Update print button link
+                    document.getElementById('printPrescriptionBtn').href = `/print/prescription/${prescriptionId}`;
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('viewPrescriptionModal'));
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error loading prescription:', error);
+                    alert('Error loading prescription details: ' + error.message);
+                });
+        });
+    });
+});
+</script>
+
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+.badge {
+    font-size: 0.75em;
+}
+.btn-group-sm > .btn {
+    border-radius: 0.375rem;
+    margin-right: 5px;
+}
+</style>
+{% endblock %}

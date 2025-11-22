@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}New Prescription - MediScript AI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+    <div class="d-block mb-4 mb-md-0">
+        <h2 class="h4"><i class="fas fa-prescription me-2"></i>New Prescription</h2>
+        <p class="mb-0">Create a new prescription for your patient</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('prescription') }}" id="prescriptionForm">
+                    <!-- Patient Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="patient_name" class="form-label">Patient Name *</label>
+                                <input type="text" class="form-control" id="patient_name" name="patient_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="patient_age" class="form-label">Patient Age *</label>
+                                <input type="number" class="form-control" id="patient_age" name="patient_age" min="1" max="120" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="patient_gender" class="form-label">Gender *</label>
+                                <select class="form-select" id="patient_gender" name="patient_gender" required>
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Diagnosis -->
+                    <div class="mb-4">
+                        <label for="diagnosis" class="form-label">Diagnosis *</label>
+                        <textarea class="form-control" id="diagnosis" name="diagnosis" rows="3" required placeholder="Enter patient diagnosis..."></textarea>
+                    </div>
+
+                    <!-- Medications Section -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label fw-bold">Medications *</label>
+                            <button type="button" class="btn btn-success btn-sm" id="addMedicine">
+                                <i class="fas fa-plus me-1"></i>Add Medicine
+                            </button>
+                        </div>
+                        
+                        <div id="medicinesContainer">
+                            <!-- Initial medicine row -->
+                            <div class="medicine-row row mb-3">
+                                <div class="col-md-5">
+                                    <input type="text" class="form-control medicine-name" name="medicine_name[]" placeholder="Start typing medicine name..." list="medicineSuggestions" autocomplete="off">
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control" name="dosage[]" placeholder="Dosage (e.g., 500mg)">
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control" name="duration[]" placeholder="Duration (e.g., 7 days)">
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-medicine" disabled>
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Medicine Suggestions Datalist -->
+                    <datalist id="medicineSuggestions"></datalist>
+
+                    <!-- Advice -->
+                    <div class="mb-4">
+                        <label for="instructions" class="form-label">Advice & Instructions</label>
+                        <textarea class="form-control" id="instructions" name="instructions" rows="3" placeholder="Enter any additional advice or instructions..."></textarea>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Prescription
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                            <i class="fas fa-redo me-2"></i>Reset Form
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Dynamic Medicine Fields -->
+<script>
+let medicineRowCount = 1;
+
+function addMedicineRow() {
+    medicineRowCount++;
+    const newRow = document.createElement('div');
+    newRow.className = 'medicine-row row mb-3';
+    newRow.innerHTML = `
+        <div class="col-md-5">
+            <input type="text" class="form-control medicine-name" name="medicine_name[]" placeholder="Start typing medicine name..." list="medicineSuggestions" autocomplete="off">
+        </div>
+        <div class="col-md-3">
+            <input type="text" class="form-control" name="dosage[]" placeholder="Dosage (e.g., 500mg)">
+        </div>
+        <div class="col-md-3">
+            <input type="text" class="form-control" name="duration[]" placeholder="Duration (e.g., 7 days)">
+        </div>
+        <div class="col-md-1">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-medicine">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    document.getElementById('medicinesContainer').appendChild(newRow);
+    updateRemoveButtons();
+    
+    // Add event listener to the new medicine name field
+    const newMedicineField = newRow.querySelector('.medicine-name');
+    newMedicineField.addEventListener('input', handleMedicineInput);
+}
+
+function removeMedicineRow(button) {
+    if (document.querySelectorAll('.medicine-row').length > 1) {
+        button.closest('.medicine-row').remove();
+        updateRemoveButtons();
+    }
+}
+
+function updateRemoveButtons() {
+    const removeButtons = document.querySelectorAll('.remove-medicine');
+    const hasMultipleRows = document.querySelectorAll('.medicine-row').length > 1;
+    
+    removeButtons.forEach(btn => {
+        btn.disabled = !hasMultipleRows;
+    });
+}
+
+function handleMedicineInput(event) {
+    const query = event.target.value;
+    if (query.length >= 2) {
+        fetch(`/api/medicine_suggestions?q=${encodeURIComponent(query)}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(medicines => {
+                const datalist = document.getElementById('medicineSuggestions');
+                datalist.innerHTML = '';
+                medicines.forEach(med => {
+                    const option = document.createElement('option');
+                    option.value = med.display_text;
+                    option.setAttribute('data-brand', med.brand_name);
+                    option.setAttribute('data-generic', med.generic_name);
+                    datalist.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching medicine suggestions:', error);
+            });
+    }
+}
+
+function resetForm() {
+    if (confirm('Are you sure you want to reset the form? All entered data will be lost.')) {
+        document.getElementById('prescriptionForm').reset();
+        // Reset to one medicine row
+        const container = document.getElementById('medicinesContainer');
+        const firstRow = container.querySelector('.medicine-row');
+        container.innerHTML = '';
+        container.appendChild(firstRow);
+        medicineRowCount = 1;
+        updateRemoveButtons();
+    }
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listener to Add Medicine button
+    document.getElementById('addMedicine').addEventListener('click', addMedicineRow);
+    
+    // Add event listeners to existing medicine name fields
+    document.querySelectorAll('.medicine-name').forEach(field => {
+        field.addEventListener('input', handleMedicineInput);
+    });
+    
+    // Add event listeners to remove buttons
+    document.querySelectorAll('.remove-medicine').forEach(btn => {
+        btn.addEventListener('click', function() {
+            removeMedicineRow(this);
+        });
+    });
+    
+    // Load initial medicine suggestions
+    fetch('/api/medicine_suggestions?q=')
+        .then(response => response.json())
+        .then(medicines => {
+            const datalist = document.getElementById('medicineSuggestions');
+            datalist.innerHTML = '';
+            medicines.forEach(med => {
+                const option = document.createElement('option');
+                option.value = med.display_text;
+                datalist.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading initial medicine suggestions:', error);
+        });
+    
+    updateRemoveButtons();
+});
+</script>
+
+<style>
+.medicine-row {
+    align-items: center;
+    transition: all 0.3s ease;
+}
+.remove-medicine:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+.form-control {
+    border-radius: 0.5rem;
+}
+.btn {
+    border-radius: 0.5rem;
+}
+</style>
+{% endblock %}

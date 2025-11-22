@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Clinic Settings - MediScript AI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+    <div class="d-block mb-4 mb-md-0">
+        <h2 class="h4"><i class="fas fa-hospital me-2"></i>Clinic Settings</h2>
+        <p class="mb-0">Manage your clinic information and contact details</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('update_clinic_settings') }}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="clinic_name" class="form-label">Clinic/Hospital Name *</label>
+                                <input type="text" class="form-control" id="clinic_name" name="clinic_name" 
+                                       value="{{ user.clinic_name or '' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="clinic_phone" class="form-label">Clinic Phone *</label>
+                                <input type="tel" class="form-control" id="clinic_phone" name="clinic_phone" 
+                                       value="{{ user.clinic_phone or '' }}" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="clinic_address" class="form-label">Clinic Address *</label>
+                        <textarea class="form-control" id="clinic_address" name="clinic_address" 
+                                  rows="3" required>{{ user.clinic_address or '' }}</textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="clinic_email" class="form-label">Clinic Email</label>
+                        <input type="email" class="form-control" id="clinic_email" name="clinic_email" 
+                               value="{{ user.clinic_email or '' }}">
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Prescription Preview</h5>
+            </div>
+            <div class="card-body">
+                <div class="prescription-preview border p-4 bg-light">
+                    <div class="text-center mb-4">
+                        <h4 class="text-primary mb-1">{{ user.clinic_name or 'Your Clinic Name' }}</h4>
+                        <p class="mb-1">{{ user.clinic_address or 'Your Clinic Address' }}</p>
+                        <p class="mb-1">Phone: {{ user.clinic_phone or 'Your Clinic Phone' }}</p>
+                        {% if user.clinic_email %}
+                        <p class="mb-0">Email: {{ user.clinic_email }}</p>
+                        {% endif %}
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Patient:</strong> John Doe</p>
+                            <p><strong>Age:</strong> 35 years</p>
+                            <p><strong>Gender:</strong> Male</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <p><strong>Date:</strong> {{ now.strftime('%Y-%m-%d') if now else '2024-01-01' }}</p>
+                            <p><strong>Doctor:</strong> Dr. {{ user.full_name }}</p>
+                            <p><strong>Specialization:</strong> {{ user.specialization or 'General Physician' }}</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="text-muted text-center">
+                        This is how your clinic information will appear on prescriptions
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.prescription-preview {
+    font-family: 'Courier New', monospace;
+    background: white;
+    border-radius: 0.5rem;
+}
+.form-control {
+    border-radius: 0.5rem;
+}
+.btn {
+    border-radius: 0.5rem;
+    padding: 0.5rem 2rem;
+}
+</style>
+{% endblock %}

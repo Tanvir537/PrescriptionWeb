@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="welcome-banner p-4 rounded mb-4">
+    <h2>Welcome, Dr. {{ doctor_name }}! <i class="fas fa-user-md"></i></h2>
+    <p class="mb-0">{{ specialization }} | Ready to manage your prescriptions</p>
+</div>
+
+<!-- Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <h3 class="text-primary">{{ total_patients }}</h3>
+                <p class="mb-0">Total Patients</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <h3 class="text-success">{{ total_prescriptions }}</h3>
+                <p class="mb-0">Prescriptions</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <h3 class="text-warning">0</h3>
+                <p class="mb-0">Today's Patients</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <h3 class="text-info">100%</h3>
+                <p class="mb-0">Accuracy</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <h4>Quick Actions</h4>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <a href="{{ url_for('prescription') }}" class="btn btn-primary w-100 py-3">
+                    <i class="fas fa-prescription me-2"></i>New Prescription
+                </a>
+            </div>
+            <div class="col-md-4 mb-3">
+                <a href="{{ url_for('patients') }}" class="btn btn-success w-100 py-3">
+                    <i class="fas fa-users me-2"></i>Manage Patients
+                </a>
+            </div>
+            <div class="col-md-4 mb-3">
+                <button class="btn btn-info w-100 py-3">
+                    <i class="fas fa-robot me-2"></i>AI Assistant
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

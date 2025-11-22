@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>📤 Admin - Import Medicines</h2>
+            <div>
+                <a href="{{ url_for('admin_medicine_list') }}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-list me-2"></i>View Medicine List
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Upload Card -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-file-csv me-2"></i>Upload CSV File</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>CSV Format Requirements:</h6>
+                    <ul class="mb-0">
+                        <li>File must be in CSV format (comma-separated values)</li>
+                        <li><strong>Required columns:</strong> <code>brand_name</code></li>
+                        <li><strong>Optional columns:</strong> <code>generic_name</code>, <code>strength</code>, <code>dosage_form</code>, <code>manufacturer</code>, <code>package_material</code></li>
+                        <li>First row should contain column headers</li>
+                        <li>File will be merged with existing data (duplicates will be replaced)</li>
+                    </ul>
+                </div>
+
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label">Select CSV File *</label>
+                        <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                        <div class="form-text">Maximum file size: 10MB</div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success" id="uploadBtn">
+                            <i class="fas fa-upload me-2"></i>Import Medicines
+                        </button>
+                        <button type="button" class="btn btn-danger" id="deleteAllBtn">
+                            <i class="fas fa-trash me-2"></i>Delete All Medicines
+                        </button>
+                    </div>
+                </form>
+
+                <div id="uploadResult" class="mt-3" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Sample Data Card -->
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-table me-2"></i>Sample CSV Format</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>brand_name</th>
+                                <th>generic_name</th>
+                                <th>strength</th>
+                                <th>dosage_form</th>
+                                <th>manufacturer</th>
+                                <th>package_material</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Panadol</td>
+                                <td>Paracetamol</td>
+                                <td>500 mg</td>
+                                <td>Tablet</td>
+                                <td>GSK</td>
+                                <td>Blister Pack</td>
+                            </tr>
+                            <tr>
+                                <td>Zytiga</td>
+                                <td>Abiraterone Acetate</td>
+                                <td>250 mg</td>
+                                <td>Tablet</td>
+                                <td>Janssen</td>
+                                <td>Bottle</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <button class="btn btn-outline-primary btn-sm" onclick="downloadSampleCSV()">
+                        <i class="fas fa-download me-2"></i>Download Sample CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    const fileInput = document.getElementById('csv_file');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const resultDiv = document.getElementById('uploadResult');
+    
+    if (!fileInput.files[0]) {
+        showResult('Please select a CSV file.', 'danger');
+        return;
+    }
+    
+    formData.append('csv_file', fileInput.files[0]);
+    
+    // Show loading state
+    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Importing...';
+    uploadBtn.disabled = true;
+    
+    fetch('/admin/import_medicines', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            let message = `
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-check-circle me-2"></i>Import Successful!</h6>
+                    <p><strong>${data.message}</strong></p>
+                    <p>Total medicines in database: ${data.total_count}</p>
+            `;
+            
+            if (data.errors && data.errors.length > 0) {
+                message += `
+                    <hr>
+                    <p><strong>Errors encountered (${data.errors.length}):</strong></p>
+                    <ul class="small">
+                `;
+                data.errors.slice(0, 10).forEach(error => {
+                    message += `<li>${error}</li>`;
+                });
+                if (data.errors.length > 10) {
+                    message += `<li>... and ${data.errors.length - 10} more errors</li>`;
+                }
+                message += `</ul>`;
+            }
+            
+            message += `
+                    <div class="mt-2">
+                        <a href="/admin/medicine_list" class="btn btn-sm btn-success">
+                            View Medicine List
+                        </a>
+                    </div>
+                </div>
+            `;
+            
+            showResult(message, 'success');
+        } else {
+            showResult(`
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Import Failed!</h6>
+                    <p class="mb-0">${data.error}</p>
+                </div>
+            `, 'danger');
+        }
+    })
+    .catch(error => {
+        showResult(`
+            <div class="alert alert-danger">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Upload Error!</h6>
+                <p class="mb-0">Failed to upload file. Please try again.</p>
+            </div>
+        `, 'danger');
+    })
+    .finally(() => {
+        // Reset button
+        uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Import Medicines';
+        uploadBtn.disabled = false;
+    });
+});
+
+document.getElementById('deleteAllBtn').addEventListener('click', function() {
+    if (confirm('⚠️ Are you sure you want to delete ALL medicines? This action cannot be undone!')) {
+        const btn = this;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
+        btn.disabled = true;
+        
+        fetch('/admin/delete_medicines', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showResult(`
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-check-circle me-2"></i>Success!</h6>
+                        <p class="mb-0">${data.message}</p>
+                    </div>
+                `, 'success');
+            } else {
+                showResult(`
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Error!</h6>
+                        <p class="mb-0">${data.error}</p>
+                    </div>
+                `, 'danger');
+            }
+        })
+        .catch(error => {
+            showResult(`
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Error!</h6>
+                    <p class="mb-0">Failed to delete medicines.</p>
+                </div>
+            `, 'danger');
+        })
+        .finally(() => {
+            btn.innerHTML = '<i class="fas fa-trash me-2"></i>Delete All Medicines';
+            btn.disabled = false;
+        });
+    }
+});
+
+function showResult(message, type) {
+    const resultDiv = document.getElementById('uploadResult');
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = message;
+}
+
+function downloadSampleCSV() {
+    const csvContent = `brand_name,generic_name,strength,dosage_form,manufacturer,package_material
+Panadol,Paracetamol,500 mg,Tablet,GSK,Blister Pack
+Zytiga,Abiraterone Acetate,250 mg,Tablet,Janssen,Bottle
+Ventolin,Salbutamol,100 mcg,Inhaler,GSK,Aerosol
+Lipitor,Atorvastatin,20 mg,Tablet,Pfizer,Blister Pack
+Amoxil,Amoxicillin,500 mg,Capsule,GSK,Bottle`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample_medicines.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}
