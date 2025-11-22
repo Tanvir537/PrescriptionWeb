@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prescription UI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="main-container">
+        <!-- Collapsible Sidebar -->
+        <nav class="collapsible-sidebar" id="collapsibleSidebar">
+            <div class="sidebar-toggle" onclick="toggleSidebar()">
+                <span id="toggleIcon">☰</span>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item" onclick="navigateTo('dashboard', this)">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Dashboard</span>
+                </div>
+                <div class="nav-item active" onclick="navigateTo('prescription', this)">
+                    <span class="nav-icon">📝</span>
+                    <span class="nav-text">Prescription</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('previous-prescription', this)">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-text">Previous Prescriptions</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('templates', this)">
+                    <span class="nav-icon">📂</span>
+                    <span class="nav-text">Templates</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('profile', this)">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">Profile</span>
+                </div>
+            </div>
+        </nav>
+        <div class="content-wrapper">
+            <!-- Dashboard Page -->
+            <div class="page-container" id="dashboard-page">
+                <header class="header">
+                    <div class="header-top">
+                        <h1>DASHBOARD</h1>
+                    </div>
+                </header>
+                <div class="dashboard-container">
+                    <div class="stat-card">
+                        <div class="stat-icon">📝</div>
+                        <div class="stat-value">24</div>
+                        <div class="stat-label">Prescriptions Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-value">142</div>
+                        <div class="stat-label">Total Patients</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-value">8</div>
+                        <div class="stat-label">Pending Reviews</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💊</div>
+                        <div class="stat-value">36</div>
+                        <div class="stat-label">Medications Prescribed</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Prescription Page (Default Active) -->
+            <div class="page-container active" id="prescription-page">
+                <header class="header">
+                    <div class="header-top">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <h1>PRESCRIPTION UI</h1>
+                            <div class="header-buttons">
+                                <button class="generate-prescription-btn" onclick="savePrescriptionToBackend()">
+                                    💾 Save Prescription
+                                </button>
+                                <button class="generate-prescription-btn" onclick="generatePrintablePrescription()">
+                                    🖨️ Generate printable prescription
+                                </button>
+                            </div>
+                        </div>
+                        <div class="patient-info-static">
+                            <p>Patient Reg. No: <strong id="regNoDisplay">1298</strong></p>
+                            <p>Date: <strong id="currentDate"></strong></p>
+                        </div>
+                    </div>
+                    <div class="patient-details">
+                        <div>
+                            <label for="patientName">Patient Name</label>
+                            <input type="text" id="patientName" placeholder="Enter patient's full name" required>
+                        </div>
+                        <div>
+                            <label for="patientAge">Age</label>
+                            <input type="text" id="patientAge" placeholder="e.g., 35" required>
+                        </div>
+                        <div>
+                            <label for="patientGender">Gender</label>
+                            <select id="patientGender" required>
+                                <option value="">Select...</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="regNoInput">Reg. No.</label>
+                            <input type="text" id="regNoInput" value="1298" required>
+                        </div>
+                    </div>
+                </header>
+                <div class="container">
+                    <aside class="sidebar">
+                        <div class="sidebar-section">
+                            <h2>C/C (Chief Complaints)</h2>
+                            <div class="input-group">
+                                <textarea id="chiefComplaints" placeholder="Enter patient's chief complaints..."></textarea>
+                            </div>
+                        </div>
+                        <div class="sidebar-section">
+                            <h2>H/O (History Of)</h2>
+                            <div class="checkbox-group">
+                                <div class="checkbox-grid">
+                                    <label><input type="checkbox" name="history" value="HTN"> HTN</label>
+                                    <label><input type="checkbox" name="history" value="DM"> DM</label>
+                                    <label><input type="checkbox" name="history" value="IHD"> IHD</label>
+                                    <label><input type="checkbox" name="history" value="BA"> BA</label>
+                                    <label><input type="checkbox" name="history" value="CKD"> CKD</label>
+                                    <label><input type="text" id="historyOthers" placeholder="Others..."></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sidebar-section">
+                            <h2>D/H (Drug History)</h2>
+                            <div class="input-group">
+                                <textarea id="drugHistory" placeholder="Enter drug history..."></textarea>
+                            </div>
+                        </div>
+                        <div class="sidebar-section">
+                            <h2>O/E (On Examination)</h2>
+                            <div class="input-group">
+                                <div class="examination-top">
+                                    <div class="examination-field">
+                                        <label>BP</label>
+                                        <div class="bp-inputs">
+                                            <input type="text" id="bpSys" placeholder="120"> 
+                                            <span>/</span>
+                                            <input type="text" id="bpDia" placeholder="80">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="examination-bottom">
+                                    <div class="examination-field">
+                                        <label>Pulse</label>
+                                        <input type="text" id="pulse" placeholder="72">
+                                    </div>
+                                    <div class="examination-field">
+                                        <label>Temp</label>
+                                        <input type="text" id="temp" value="98.6°F">
+                                    </div>
+                                    <div class="examination-field">
+                                        <label>Spo2</label>
+                                        <input type="text" id="spo2" placeholder="98">
+                                    </div>
+                                    <div class="examination-field">
+                                        <label>RR</label>
+                                        <input type="text" id="rr" placeholder="16">
+                                    </div>
+                                </div>
+                                <div class="examination-field" style="margin-top: 8px;">
+                                    <label>Others</label>
+                                    <input type="text" id="oeOthers">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sidebar-section">
+                            <h2>Investigation</h2>
+                            <div class="input-group">
+                                <textarea id="investigationEntry" placeholder="Enter investigation details..."></textarea>
+                            </div>
+                        </div>
+                        <div class="sidebar-section">
+                            <h2>Diagnosis</h2>
+                            <div class="input-group">
+                                <textarea id="diagnosis" placeholder="Enter diagnosis details..."></textarea>
+                            </div>
+                        </div>
+                    </aside>
+                    <main class="main-content">
+                        <div class="medication-prescription-container">
+                            <div class="content-card medication-section">
+                                <div class="medication-header">
+                                    <h2>➕ Add Medication</h2>
+                                </div>
+                                <div class="medication-tabs">
+                                    <div class="medication-tab active" id="medicationTab" onclick="showMedicationTab('medication')">
+                                        Medication
+                                    </div>
+                                    <div class="medication-tab" id="adviceTab" onclick="showMedicationTab('advice')">
+                                        Prescription Advice
+                                    </div>
+                                </div>
+                                <div id="medicationTabContent">
+                                    <div class="medication-search">
+                                        <input type="text" id="medicineSearchInput" placeholder="Search by Brand Name...">
+                                        <div class="suggestions-container" id="suggestionsContainer"></div>
+                                    </div>
+                                    <div id="suggestionsSection" style="display: none;">
+                                        <h4 style="margin-bottom: 8px; font-size: 12px;">Suggestions</h4>
+                                        <div id="suggestionButtons" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;"></div>
+                                    </div>
+                                    <div class="medication-form" id="medicationForm" style="display: none;">
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label>Brand Name</label>
+                                                <select id="brandSelect">
+                                                    <option value="">Select Brand</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Generic Name</label>
+                                                <select id="genericSelect">
+                                                    <option value="">Select Generic</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label>Form</label>
+                                                <select id="formSelect">
+                                                    <option value="">Select Form</option>
+                                                    <option value="Tablet">Tablet</option>
+                                                    <option value="Capsule">Capsule</option>
+                                                    <option value="Syrup">Syrup</option>
+                                                    <option value="Injection">Injection</option>
+                                                    <option value="Cream">Cream</option>
+                                                    <option value="Ointment">Ointment</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Strength</label>
+                                                <select id="strengthSelect">
+                                                    <option value="">Select Strength</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label>Dosage</label>
+                                                <select id="dosageSelect">
+                                                    <option value="">Select Dosage</option>
+                                                    <option value="১+১+১">১+১+১</option>
+                                                    <option value="১+০+১">১+০+১</option>
+                                                    <option value="০+১+১">০+১+১</option>
+                                                    <option value="১+১+০">১+১+০</option>
+                                                    <option value="Custom">Custom</option>
+                                                </select>
+                                                <input type="text" id="customDosage" placeholder="Custom Dosage" style="display: none; margin-top: 5px;">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Timing</label>
+                                                <select id="timingSelect">
+                                                    <option value="">Select Timing</option>
+                                                    <option value="After meal">After meal</option>
+                                                    <option value="Before meal">Before meal</option>
+                                                    <option value="With meal">With meal</option>
+                                                    <option value="At bedtime">At bedtime</option>
+                                                    <option value="Morning">Morning</option>
+                                                    <option value="Evening">Evening</option>
+                                                    <option value="Custom">Custom</option>
+                                                </select>
+                                                <input type="text" id="customTiming" placeholder="Custom Timing" style="display: none; margin-top: 5px;">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Duration</label>
+                                                <select id="durationSelect">
+                                                    <option value="">Select Duration</option>
+                                                    <option value="১ দিন">১ দিন</option>
+                                                    <option value="৩ দিন">৩ দিন</option>
+                                                    <option value="৫ দিন">৫ দিন</option>
+                                                    <option value="১ সপ্তাহ">১ সপ্তাহ</option>
+                                                    <option value="১ মাস">১ মাস</option>
+                                                    <option value="Custom">Custom</option>
+                                                </select>
+                                                <input type="text" id="customDuration" placeholder="Custom Duration" style="display: none; margin-top: 5px;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="medication-instructions" id="medicationInstructionsSection" style="display: none;">
+                                        <label>Medication Instructions</label>
+                                        <textarea id="medicationInstructions" placeholder="Enter specific instructions for this medication..."></textarea>
+                                    </div>
+                                    <div class="medicine-info" id="medicineInfo" style="display: none;">
+                                        <h4>Medicine Information</h4>
+                                        <p><strong>Indication:</strong> <span id="medicineIndication"></span></p>
+                                        <p><strong>Contraindication:</strong> <span id="medicineContraindication"></span></p>
+                                        <p><strong>Side Effects:</strong> <span id="medicineSideEffects"></span></p>
+                                    </div>
+                                    <button class="add-button" id="addToPrescriptionBtn" style="display: none;">➕ Add to Prescription</button>
+                                </div>
+                                <div id="adviceTabContent" style="display: none;">
+                                    <div class="medication-form">
+                                        <div class="form-group">
+                                            <label>Prescription Advice</label>
+                                            <textarea id="prescriptionAdvice" placeholder="Enter general advice for the prescription..."></textarea>
+                                        </div>
+                                    </div>
+                                    <button class="add-button" id="addAdviceToPrescriptionBtn">➕ Add Advice to Prescription</button>
+                                </div>
+                            </div>
+                            <div class="content-card prescription-list-section">
+                                <div class="prescription-header">
+                                    <h2>📋 Prescription List</h2>
+                                    <div style="display: flex; gap: 10px;">
+                                        <button class="load-template-btn" onclick="loadTemplate()">📂 Load Template</button>
+                                        <button class="save-template-btn" onclick="saveTemplate()">💾 Save as Template</button>
+                                        <button class="toggle-all-btn" id="toggleAllBtn" onclick="toggleAllPrescriptions()">⊟ Collapse All</button>
+                                    </div>
+                                </div>
+                                <div class="prescription-list" id="prescriptionItems">
+                                    <p style="text-align: center; padding: 20px; color: #777;">No medications added yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="advice-followup-container">
+                            <div class="content-card">
+                                <h2>Advice Entry</h2>
+                                <div class="advice-entry">
+                                    <textarea id="adviceEntry" placeholder="Enter advice for patient..."></textarea>
+                                </div>
+                            </div>
+                            <div class="content-card">
+                                <h2>Follow-up</h2>
+                                <div class="followup-entry">
+                                    <textarea id="followupEntry" placeholder="Enter follow-up instructions..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+            
+            <!-- Previous Prescription Page -->
+            <div class="page-container" id="previous-prescription-page">
+                <header class="header">
+                    <div class="header-top">
+                        <h1>PREVIOUS PRESCRIPTIONS</h1>
+                    </div>
+                </header>
+                <div class="previous-prescription-container">
+                    <div class="prescription-filters">
+                        <div class="filter-group">
+                            <label>Patient Name</label>
+                            <input type="text" id="filterPatientName" placeholder="Search by name...">
+                        </div>
+                        <div class="filter-group">
+                            <label>Date From</label>
+                            <input type="date" id="filterDateFrom">
+                        </div>
+                        <div class="filter-group">
+                            <label>Date To</label>
+                            <input type="date" id="filterDateTo">
+                        </div>
+                        <div class="filter-group">
+                            <label>Registration No.</label>
+                            <input type="text" id="filterRegNo" placeholder="Enter reg. no...">
+                        </div>
+                        <button class="search-btn" onclick="searchPrescriptions()">Search</button>
+                    </div>
+                    <table class="prescription-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Reg. No.</th>
+                                <th>Patient Name</th>
+                                <th>Diagnosis</th>
+                                <th>Medications</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prescriptionTableBody">
+                            <tr>
+                                <td>15/06/2023</td>
+                                <td>1298</td>
+                                <td>John Doe</td>
+                                <td>Hypertension</td>
+                                <td>Amlodipine 5mg, Metformin 500mg</td>
+                                <td><button class="view-btn" onclick="viewPrescription(1)">View</button></td>
+                            </tr>
+                            <tr>
+                                <td>14/06/2023</td>
+                                <td>1297</td>
+                                <td>Jane Smith</td>
+                                <td>Type 2 Diabetes</td>
+                                <td>Metformin 850mg, Atorvastatin 20mg</td>
+                                <td><button class="view-btn" onclick="viewPrescription(2)">View</button></td>
+                            </tr>
+                            <tr>
+                                <td>13/06/2023</td>
+                                <td>1296</td>
+                                <td>Robert Johnson</td>
+                                <td>Upper Respiratory Infection</td>
+                                <td>Amoxicillin 500mg, Paracetamol 650mg</td>
+                                <td><button class="view-btn" onclick="viewPrescription(3)">View</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Templates Page -->
+            <div class="page-container" id="templates-page">
+                <header class="header">
+                    <div class="header-top">
+                        <h1>PRESCRIPTION TEMPLATES</h1>
+                    </div>
+                </header>
+                <div class="templates-container">
+                    <div class="template-grid" id="templateList">
+                        <!-- Templates will be loaded here dynamically -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Profile Page -->
+            <div class="page-container" id="profile-page">
+                <header class="header">
+                    <div class="header-top">
+                        <h1>USER PROFILE</h1>
+                    </div>
+                </header>
+                <div class="profile-container">
+                    <div class="profile-card">
+                        <div class="profile-header">
+                            <div class="profile-avatar">👨‍⚕️</div>
+                            <div class="profile-info">
+                                <h2>Dr. John Smith</h2>
+                                <p>General Practitioner</p>
+                                <p>License No: MD123456</p>
+                            </div>
+                        </div>
+                        <form class="profile-form">
+                            <div class="form-group">
+                                <label>First Name</label>
+                                <input type="text" value="John">
+                            </div>
+                            <div class="form-group">
+                                <label>Last Name</label>
+                                <input type="text" value="Smith">
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" value="john.smith@hospital.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" value="+1 234 567 8900">
+                            </div>
+                            <div class="form-group">
+                                <label>Specialization</label>
+                                <input type="text" value="General Practitioner">
+                            </div>
+                            <div class="form-group">
+                                <label>License No.</label>
+                                <input type="text" value="MD123456">
+                            </div>
+                            <div class="form-group form-group-full">
+                                <label>Address</label>
+                                <textarea>123 Medical Center Drive, City, State 12345</textarea>
+                            </div>
+                            <div class="form-group form-group-full">
+                                <button class="add-button" onclick="saveProfile()">Save Profile</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="notification" class="notification"></div>
+    <script src="script.js"></script>
+</body>
+</html>
