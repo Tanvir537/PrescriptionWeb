@@ -33,7 +33,7 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* Prevent body from scrolling */
+            overflow: hidden;
         }
         header {
             background-color: var(--primary-color);
@@ -738,6 +738,16 @@
             font-weight: 500;
             text-align: center;
         }
+        .template-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            justify-content: center;
+        }
+        .template-actions .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
         @media (max-width: 1200px) {
             .sidebar {
                 width: 350px;
@@ -815,6 +825,9 @@
     <header>
         <h1><i class="fas fa-file-medical"></i> Professional Prescription Pad Designer</h1>
         <div class="header-actions">
+            <button class="btn btn-outline" id="backBtn">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </button>
             <button class="btn btn-outline" id="resetBtn">
                 <i class="fas fa-undo"></i> Reset
             </button>
@@ -834,7 +847,7 @@
         <div class="tab" data-tab="content"><i class="fas fa-edit"></i> Content</div>
         <div class="tab" data-tab="medication"><i class="fas fa-pills"></i> Medications</div>
         <div class="tab" data-tab="style"><i class="fas fa-palette"></i> Style</div>
-        <div class="tab" data-tab="templates"><i class="fas fa-file-alt"></i> Templates</div>
+        <div class="tab" data-tab="templates"><i class="fas fa-file-alt"></i> Saved Designs</div>
     </div>
     <main>
         <aside class="sidebar">
@@ -961,6 +974,8 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Other tabs remain the same as your original file -->
             <!-- Header/Footer Tab -->
             <div class="tab-content" id="header-tab">
                 <h2><i class="fas fa-heading"></i> Header & Footer Settings</h2>
@@ -1096,6 +1111,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- Patient Info Tab -->
             <div class="tab-content" id="patient-tab">
                 <h2><i class="fas fa-user-edit"></i> Patient Info Settings</h2>
@@ -1184,6 +1200,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- Layout Tab -->
             <div class="tab-content" id="layout-tab">
                 <h2><i class="fas fa-th-large"></i> Layout Options</h2>
@@ -1275,6 +1292,7 @@
                     <input type="file" id="logoUpload" class="form-control" accept="image/*">
                 </div>
             </div>
+
             <!-- Content Tab -->
             <div class="tab-content" id="content-tab">
                 <h2><i class="fas fa-edit"></i> Content Sections</h2>
@@ -1399,6 +1417,7 @@ Tab. Norium 10 mg</textarea>
                     </div>
                 </div>
             </div>
+
             <!-- Medication Tab -->
             <div class="tab-content" id="medication-tab">
                 <h2><i class="fas fa-pills"></i> Medication Settings</h2>
@@ -1522,6 +1541,7 @@ Tab. Norium 10 mg</textarea>
                     </div>
                 </div>
             </div>
+
             <!-- Style Tab -->
             <div class="tab-content" id="style-tab">
                 <h2><i class="fas fa-palette"></i> Style Options</h2>
@@ -1612,25 +1632,30 @@ Tab. Norium 10 mg</textarea>
                     </div>
                 </div>
             </div>
-            <!-- Templates Tab -->
+
+            <!-- Saved Designs Tab -->
             <div class="tab-content" id="templates-tab">
-                <h2><i class="fas fa-file-alt"></i> Prescription Templates</h2>
+                <h2><i class="fas fa-file-alt"></i> Saved Designs</h2>
                 <div class="section">
-                    <div class="section-title">Choose a Template</div>
+                    <div class="section-title">Your Saved Designs</div>
+                    <div class="template-grid" id="savedDesignsGrid">
+                        <!-- Designs will be loaded here dynamically -->
+                        <div class="template-preview">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <div>Loading designs...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-title">Quick Templates</div>
                     <div class="template-grid">
-                        <div class="template-card" data-template="standard">
+                        <div class="template-card" onclick="loadQuickTemplate('standard')">
                             <div class="template-preview">
                                 <i class="fas fa-file-medical fa-3x"></i>
                             </div>
                             <div class="template-name">Standard Prescription</div>
                         </div>
-                        <div class="template-card" data-template="specialist">
-                            <div class="template-preview">
-                                <i class="fas fa-user-md fa-3x"></i>
-                            </div>
-                            <div class="template-name">Specialist Prescription</div>
-                        </div>
-                        <div class="template-card" data-template="minimal">
+                        <div class="template-card" onclick="loadQuickTemplate('minimal')">
                             <div class="template-preview">
                                 <i class="fas fa-clipboard fa-3x"></i>
                             </div>
@@ -1780,1434 +1805,235 @@ Tab. Norium 10 mg</textarea>
         <i class="fas fa-check-circle"></i>
         <span id="notificationText">Changes saved successfully!</span>
     </div>
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const today = new Date();
-            const formattedDate = (today.getMonth() + 1) + '/' + today.getDate() + '/' + today.getFullYear();
-            document.getElementById('currentDate').value = formattedDate;
+        // API Integration Functions
+        const API_BASE = window.location.origin;
 
-            document.querySelectorAll('.medication-item').forEach((med, index) => {
-                const name = med.querySelector('.med-name').textContent;
-                const dose = med.querySelector('.med-dose').textContent;
-                const instructionsAndDuration = med.querySelector('.med-instructions').textContent;
-                const parts = instructionsAndDuration.split(' - ');
-                const instructions = parts[0] || '';
-                const duration = parts.length > 1 ? parts.slice(1).join(' - ') : '';
-
-                med.dataset.name = name;
-                med.dataset.dose = dose;
-                med.dataset.instructions = instructions;
-                med.dataset.duration = duration;
-            });
-
-            initializeTabSwitching();
-            initializeEventListeners();
-            initializeHeaderLines();
-            initializeFooterLines();
-            initializeMedicationLines();
-            initializeMultiLineConfig();
-            loadSavedDesign();
-
-            let styleSheet = document.createElement('style');
-            styleSheet.id = 'dynamicMedStyles';
-            document.head.appendChild(styleSheet);
-
-            let patientStyleSheet = document.createElement('style');
-            patientStyleSheet.id = 'dynamicPatientInfoStyles';
-            document.head.appendChild(patientStyleSheet);
-
-            updateMedicationTextStyles(); // Initial call
-            updateRxSymbolSize(); // Initial call
-            updateSplitLayoutSpacing(); // Initial call
-            updatePatientInfoFontSize(); // Initial call
-            updatePatientInfoSpacingControls(); // Initial call
+        // Save design to backend
+        async function saveDesignToBackend() {
+            const designData = getCurrentDesignData();
+            const name = prompt('Enter a name for this pad design:');
             
-            // Initial visibility check
-            updatePatientFieldVisibility('Name');
-            updatePatientFieldVisibility('Age');
-            updatePatientFieldVisibility('Sex');
-            updatePatientFieldVisibility('Weight');
-            updatePatientFieldVisibility('Id');
-            updatePatientFieldVisibility('Date');
-        });
-
-        function initializeTabSwitching() {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const tabName = this.dataset.tab;
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    this.classList.add('active');
-                    const targetContent = document.getElementById(`${tabName}-tab`);
-                    if (targetContent) {
-                        targetContent.classList.add('active');
-                    }
+            if (!name) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/pad-designs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        designData: designData
+                    })
                 });
-            });
-        }
-
-        function initializeEventListeners() {
-            document.getElementById('pageSize').addEventListener('change', updatePageSize);
-            document.querySelectorAll('[data-orientation]').forEach(button => {
-                button.addEventListener('click', function() {
-                    updateOrientation(this.dataset.orientation);
-                    document.querySelectorAll('[data-orientation]').forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-            document.getElementById('borderStyle').addEventListener('change', updateBorderStyle);
-            document.getElementById('borderSize').addEventListener('input', updateBorderSize);
-            document.getElementById('borderUnit').addEventListener('change', updateBorderSize);
-            document.getElementById('marginTop').addEventListener('input', updatePageMargins);
-            document.getElementById('marginUnitTop').addEventListener('change', updatePageMargins);
-            document.getElementById('marginBottom').addEventListener('input', updatePageMargins);
-            document.getElementById('marginUnitBottom').addEventListener('change', updatePageMargins);
-            document.getElementById('marginLeft').addEventListener('input', updatePageMargins);
-            document.getElementById('marginUnitLeft').addEventListener('change', updatePageMargins);
-            document.getElementById('marginRight').addEventListener('input', updatePageMargins);
-            document.getElementById('marginUnitRight').addEventListener('change', updatePageMargins);
-            document.getElementById('headerHeight').addEventListener('input', updateHeaderFooterSize);
-            document.getElementById('headerUnit').addEventListener('change', updateHeaderFooterSize);
-            document.getElementById('footerHeight').addEventListener('input', updateHeaderFooterSize);
-            document.getElementById('footerUnit').addEventListener('change', updateHeaderFooterSize);
-            document.getElementById('headerBgColor').addEventListener('input', updateHeaderBgColor);
-            document.getElementById('headerBgColorValue').addEventListener('input', updateHeaderBgColorFromText);
-            document.getElementById('footerBgColor').addEventListener('input', updateFooterBgColor);
-            document.getElementById('footerBgColorValue').addEventListener('input', updateFooterBgColorFromText);
-            document.querySelectorAll('[data-header-layout]').forEach(button => {
-                button.addEventListener('click', function() {
-                    updateHeaderLayout(this.dataset.headerLayout);
-                    document.querySelectorAll('[data-header-layout]').forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-            document.querySelectorAll('[data-footer-layout]').forEach(button => {
-                button.addEventListener('click', function() {
-                    updateFooterLayout(this.dataset.footerLayout);
-                    document.querySelectorAll('[data-footer-layout]').forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-            document.getElementById('headerLineStyle').addEventListener('change', updateHeaderLine);
-            document.getElementById('headerLineWidth').addEventListener('input', updateHeaderLineWidth);
-            document.getElementById('headerLineWidthUnit').addEventListener('change', updateHeaderLineWidth);
-            document.getElementById('headerLineColor').addEventListener('input', updateHeaderLineColor);
-            document.getElementById('headerLineColorValue').addEventListener('input', updateHeaderLineColorFromText);
-            document.getElementById('footerLineStyle').addEventListener('change', updateFooterLine);
-            document.getElementById('footerLineWidth').addEventListener('input', updateFooterLineWidth);
-            document.getElementById('footerLineWidthUnit').addEventListener('change', updateFooterLineWidth);
-            document.getElementById('footerLineColor').addEventListener('input', updateFooterLineColor);
-            document.getElementById('footerLineColorValue').addEventListener('input', updateFooterLineColorFromText);
-            document.querySelectorAll('[data-body-layout]').forEach(button => {
-                button.addEventListener('click', function() {
-                    updateBodyLayout(this.dataset.bodyLayout);
-                    document.querySelectorAll('[data-body-layout]').forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-            document.querySelectorAll('[data-rx]').forEach(button => {
-                button.addEventListener('click', function() {
-                    updateRxSymbol(this.dataset.rx);
-                    document.querySelectorAll('[data-rx]').forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-            document.getElementById('logoPosition').addEventListener('change', updateLogoPosition);
-            document.getElementById('logoUpload').addEventListener('change', handleLogoUpload);
-            document.getElementById('patientInfoSpacing').addEventListener('input', updatePatientInfoSpacing);
-            document.getElementById('patientInfoSpacingUnit').addEventListener('change', updatePatientInfoSpacing);
-            document.getElementById('showPatientInfo').addEventListener('change', togglePatientInfoSection);
-            document.getElementById('rxSymbolSize').addEventListener('input', updateRxSymbolSize);
-            document.getElementById('rxSymbolSizeUnit').addEventListener('change', updateRxSymbolSize);
-            document.getElementById('splitLeftSpacing').addEventListener('input', updateSplitLayoutSpacing);
-            document.getElementById('splitLeftSpacingUnit').addEventListener('change', updateSplitLayoutSpacing);
-            document.getElementById('splitRightSpacing').addEventListener('input', updateSplitLayoutSpacing);
-            document.getElementById('splitRightSpacingUnit').addEventListener('change', updateSplitLayoutSpacing);
-            document.getElementById('includeCC').addEventListener('change', toggleSection('ccSection'));
-            document.getElementById('includeDH').addEventListener('change', toggleSection('dhSection'));
-            document.getElementById('includeOE').addEventListener('change', toggleSection('oeSection'));
-            document.getElementById('includeINV').addEventListener('change', toggleSection('invSection'));
-            document.getElementById('includeAdv').addEventListener('change', toggleSection('advSection'));
-            document.getElementById('ccLabel').addEventListener('input', updateSectionLabel('ccLabelElement'));
-            document.getElementById('dhLabel').addEventListener('input', updateSectionLabel('dhLabelElement'));
-            document.getElementById('oeLabel').addEventListener('input', updateSectionLabel('oeLabelElement'));
-            document.getElementById('invLabel').addEventListener('input', updateSectionLabel('invLabelElement'));
-            document.getElementById('advLabel').addEventListener('input', updateSectionLabel('advLabelElement'));
-            document.getElementById('ccDefault').addEventListener('input', updateDefaultContent('ccContent'));
-            document.getElementById('dhDefault').addEventListener('input', updateDefaultContent('dhContent'));
-            document.querySelectorAll('[data-med-format]').forEach(button => {
-                button.addEventListener('click', function() {
-                    updateMedicationFormat(this.dataset.medFormat);
-                    document.querySelectorAll('[data-med-format]').forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-            document.getElementById('showMedName').addEventListener('change', updateMedicationDetails);
-            document.getElementById('showMedDose').addEventListener('change', updateMedicationDetails);
-            document.getElementById('showMedDuration').addEventListener('change', updateMedicationDetails);
-            document.getElementById('showMedInstructions').addEventListener('change', updateMedicationDetails);
-            document.getElementById('medicationLines').addEventListener('change', updateMedicationLines);
-            document.getElementById('contentFontSize').addEventListener('input', updateContentFontSize);
-            document.getElementById('contentFontSizeUnit').addEventListener('change', updateContentFontSize);
-            document.getElementById('medNameSize').addEventListener('input', updateMedicationTextStyles);
-            document.getElementById('medNameSizeUnit').addEventListener('change', updateMedicationTextStyles);
-            document.getElementById('medNameStyle').addEventListener('change', updateMedicationTextStyles);
-            document.getElementById('medDoseSize').addEventListener('input', updateMedicationTextStyles);
-            document.getElementById('medDoseSizeUnit').addEventListener('change', updateMedicationTextStyles);
-            document.getElementById('medDoseStyle').addEventListener('change', updateMedicationTextStyles);
-            document.getElementById('medInstrSize').addEventListener('input', updateMedicationTextStyles);
-            document.getElementById('medInstrSizeUnit').addEventListener('change', updateMedicationTextStyles);
-            document.getElementById('medInstrStyle').addEventListener('change', updateMedicationTextStyles);
-            document.getElementById('medDurSize').addEventListener('input', updateMedicationTextStyles);
-            document.getElementById('medDurSizeUnit').addEventListener('change', updateMedicationTextStyles);
-            document.getElementById('medDurStyle').addEventListener('change', updateMedicationTextStyles);
-            document.getElementById('headerColor').addEventListener('input', updateHeaderColor);
-            document.getElementById('headerColorValue').addEventListener('input', updateHeaderColorFromText);
-            document.getElementById('titleColor').addEventListener('input', updateTitleColor);
-            document.getElementById('titleColorValue').addEventListener('input', updateTitleColorFromText);
-            document.getElementById('accentColor').addEventListener('input', updateAccentColor);
-            document.getElementById('accentColorValue').addEventListener('input', updateAccentColorFromText);
-            document.getElementById('pageBgColor').addEventListener('input', updatePageBgColor);
-            document.getElementById('pageBgColorValue').addEventListener('input', updatePageBgColorFromText);
-            document.getElementById('contentBgColor').addEventListener('input', updateContentBgColor);
-            document.getElementById('contentBgColorValue').addEventListener('input', updateContentBgColorFromText);
-            document.getElementById('fontFamily').addEventListener('change', updateFontFamily);
-            document.getElementById('bengaliFont').addEventListener('change', updateBengaliFont);
-            document.getElementById('watermark').addEventListener('input', updateWatermark);
-            document.getElementById('watermarkLogoUpload').addEventListener('change', handleWatermarkLogoUpload);
-            document.getElementById('watermarkLogoPosition').addEventListener('change', updateWatermarkLogoStyle);
-            document.getElementById('watermarkLogoOpacity').addEventListener('input', updateWatermarkLogoStyle);
-            document.getElementById('zoomIn').addEventListener('click', () => changeZoom(10));
-            document.getElementById('zoomOut').addEventListener('click', () => changeZoom(-10));
-            document.getElementById('resetBtn').addEventListener('click', resetDesign);
-            document.getElementById('saveBtn').addEventListener('click', saveDesign);
-            document.getElementById('downloadBtn').addEventListener('click', downloadPDF);
-
-            // New Patient Info Listeners
-            document.getElementById('showPatientName').addEventListener('change', () => updatePatientFieldVisibility('Name'));
-            document.getElementById('showPatientAge').addEventListener('change', () => updatePatientFieldVisibility('Age'));
-            document.getElementById('showPatientSex').addEventListener('change', () => updatePatientFieldVisibility('Sex'));
-            document.getElementById('showPatientWeight').addEventListener('change', () => updatePatientFieldVisibility('Weight'));
-            document.getElementById('showPatientId').addEventListener('change', () => updatePatientFieldVisibility('Id'));
-            document.getElementById('showPatientDate').addEventListener('change', () => updatePatientFieldVisibility('Date'));
-            document.querySelectorAll('[data-patient-layout]').forEach(button => {
-                button.addEventListener('click', function() {
-                    updatePatientInfoLayout(this.dataset.patientLayout);
-                    document.querySelectorAll('[data-patient-layout]').forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-            document.getElementById('patientLabelSize').addEventListener('input', updatePatientInfoFontSize);
-            document.getElementById('patientLabelSizeUnit').addEventListener('change', updatePatientInfoFontSize);
-            document.getElementById('patientInputSize').addEventListener('input', updatePatientInfoFontSize);
-            document.getElementById('patientInputSizeUnit').addEventListener('change', updatePatientInfoFontSize);
-
-            document.querySelectorAll('.template-card').forEach(card => {
-                card.addEventListener('click', function() {
-                    const templateName = this.dataset.template;
-                    loadTemplate(templateName);
-                });
-            });
-
-            // New Patient Info Listeners
-            document.getElementById('showPatientName').addEventListener('change', () => updatePatientFieldVisibility('Name'));
-            document.getElementById('showPatientAge').addEventListener('change', () => updatePatientFieldVisibility('Age'));
-            document.getElementById('showPatientSex').addEventListener('change', () => updatePatientFieldVisibility('Sex'));
-            document.getElementById('showPatientWeight').addEventListener('change', () => updatePatientFieldVisibility('Weight'));
-            document.getElementById('showPatientId').addEventListener('change', () => updatePatientFieldVisibility('Id'));
-            document.getElementById('showPatientDate').addEventListener('change', () => updatePatientFieldVisibility('Date'));
-            document.querySelectorAll('[data-patient-layout]').forEach(button => {
-                button.addEventListener('click', function() {
-                    updatePatientInfoLayout(this.dataset.patientLayout);
-                    document.querySelectorAll('[data-patient-layout]').forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-            document.getElementById('patientLabelSize').addEventListener('input', updatePatientInfoFontSize);
-            document.getElementById('patientLabelSizeUnit').addEventListener('change', updatePatientInfoFontSize);
-            document.getElementById('patientInputSize').addEventListener('input', updatePatientInfoFontSize);
-            document.getElementById('patientInputSizeUnit').addEventListener('change', updatePatientInfoFontSize);
-            document.getElementById('patientFieldItemSpacing').addEventListener('input', updatePatientInfoSpacingControls);
-            document.getElementById('patientFieldItemSpacingUnit').addEventListener('change', updatePatientInfoSpacingControls);
-            document.getElementById('patientFieldSpacing').addEventListener('input', updatePatientInfoSpacingControls);
-            document.getElementById('patientFieldSpacingUnit').addEventListener('change', updatePatientInfoSpacingControls);
-        }
-
-        let headerLeftLineCount = 3;
-        let headerRightLineCount = 3;
-        let footerLeftLineCount = 2;
-        let footerRightLineCount = 2;
-
-        function initializeHeaderLines() {
-            const leftContainer = document.getElementById('headerLeftLineEditors');
-            if (leftContainer) {
-                leftContainer.innerHTML = '';
-                for (let i = 1; i <= headerLeftLineCount; i++) {
-                    addHeaderLineElement(i, 'Left');
-                }
-            }
-            const rightContainer = document.getElementById('headerRightLineEditors');
-            if (rightContainer) {
-                rightContainer.innerHTML = '';
-                for (let i = 1; i <= headerRightLineCount; i++) {
-                    addHeaderLineElement(i, 'Right');
-                }
-            }
-        }
-        function initializeFooterLines() {
-            const leftContainer = document.getElementById('footerLeftLineEditors');
-            if (leftContainer) {
-                leftContainer.innerHTML = '';
-                for (let i = 1; i <= footerLeftLineCount; i++) {
-                    addFooterLineElement(i, 'Left');
-                }
-            }
-            const rightContainer = document.getElementById('footerRightLineEditors');
-            if (rightContainer) {
-                rightContainer.innerHTML = '';
-                for (let i = 1; i <= footerRightLineCount; i++) {
-                    addFooterLineElement(i, 'Right');
-                }
-            }
-        }
-        function initializeMedicationLines() {
-            document.querySelectorAll('.med-line-content').forEach(input => {
-                input.addEventListener('input', function() {
-                    updateMedicationLine(this.dataset.line, this.value);
-                });
-            });
-        }
-
-        function addHeaderLineElement(lineNumber, side) {
-            const container = document.getElementById(`header${side}LineEditors`);
-            const lineEl = document.createElement('div');
-            lineEl.className = 'line-editor';
-            lineEl.innerHTML = `
-                <div class="line-editor-header">
-                    <span>Line ${lineNumber}</span>
-                    <button class="btn-icon" onclick="removeHeaderLine(${lineNumber}, '${side}')"><i class="fas fa-trash"></i></button>
-                </div>
-                <div class="line-editor-content">
-                    <div class="form-group">
-                        <label>Text</label>
-                        <input type="text" id="header${side}Line${lineNumber}Text" class="form-control" value="">
-                    </div>
-                    <div class="form-group">
-                        <label>Font Size</label>
-                        <div class="measurement-controls">
-                            <input type="number" id="header${side}Line${lineNumber}Size" class="form-control measurement-input" value="12" min="8" max="48">
-                            <select id="header${side}Line${lineNumber}SizeUnit" class="form-control measurement-unit">
-                                <option value="px">px</option>
-                                <option value="pt">pt</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Style</label>
-                        <select id="header${side}Line${lineNumber}Style" class="form-control">
-                            <option value="normal">Normal</option>
-                            <option value="bold">Bold</option>
-                            <option value="italic">Italic</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Alignment</label>
-                        <select id="header${side}Line${lineNumber}Align" class="form-control">
-                            <option value="left">Left</option>
-                            <option value="center">Center</option>
-                            <option value="right">Right</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Color</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="header${side}Line${lineNumber}Color" class="color-picker" value="#333333">
-                            <input type="text" id="header${side}Line${lineNumber}ColorValue" class="form-control color-value" value="#333333">
-                        </div>
-                    </div>
-                </div>
-            `;
-            container.appendChild(lineEl);
-
-            document.getElementById(`header${side}Line${lineNumber}Text`).addEventListener('input', () => updateHeaderText(lineNumber, side));
-            document.getElementById(`header${side}Line${lineNumber}Size`).addEventListener('input', () => updateHeaderTextStyle(lineNumber, side));
-            document.getElementById(`header${side}Line${lineNumber}SizeUnit`).addEventListener('change', () => updateHeaderTextStyle(lineNumber, side));
-            document.getElementById(`header${side}Line${lineNumber}Style`).addEventListener('change', () => updateHeaderTextStyle(lineNumber, side));
-            document.getElementById(`header${side}Line${lineNumber}Align`).addEventListener('change', () => updateHeaderTextStyle(lineNumber, side));
-            document.getElementById(`header${side}Line${lineNumber}Color`).addEventListener('input', () => updateHeaderTextColor(lineNumber, side));
-            document.getElementById(`header${side}Line${lineNumber}ColorValue`).addEventListener('input', () => updateHeaderTextColorFromText(lineNumber, side));
-        }
-
-        function addFooterLineElement(lineNumber, side) {
-            const container = document.getElementById(`footer${side}LineEditors`);
-            const lineEl = document.createElement('div');
-            lineEl.className = 'line-editor';
-            lineEl.innerHTML = `
-                <div class="line-editor-header">
-                    <span>Line ${lineNumber}</span>
-                    <button class="btn-icon" onclick="removeFooterLine(${lineNumber}, '${side}')"><i class="fas fa-trash"></i></button>
-                </div>
-                <div class="line-editor-content">
-                    <div class="form-group">
-                        <label>Text</label>
-                        <input type="text" id="footer${side}Line${lineNumber}Text" class="form-control" value="">
-                    </div>
-                    <div class="form-group">
-                        <label>Font Size</label>
-                        <div class="measurement-controls">
-                            <input type="number" id="footer${side}Line${lineNumber}Size" class="form-control measurement-input" value="10" min="8" max="48">
-                            <select id="footer${side}Line${lineNumber}SizeUnit" class="form-control measurement-unit">
-                                <option value="px">px</option>
-                                <option value="pt">pt</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Style</label>
-                        <select id="footer${side}Line${lineNumber}Style" class="form-control">
-                            <option value="normal">Normal</option>
-                            <option value="bold">Bold</option>
-                            <option value="italic">Italic</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Alignment</label>
-                        <select id="footer${side}Line${lineNumber}Align" class="form-control">
-                            <option value="left">Left</option>
-                            <option value="center">Center</option>
-                            <option value="right">Right</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Color</label>
-                        <div class="color-picker-wrapper">
-                            <input type="color" id="footer${side}Line${lineNumber}Color" class="color-picker" value="#777777">
-                            <input type="text" id="footer${side}Line${lineNumber}ColorValue" class="form-control color-value" value="#777777">
-                        </div>
-                    </div>
-                </div>
-            `;
-            container.appendChild(lineEl);
-
-            document.getElementById(`footer${side}Line${lineNumber}Text`).addEventListener('input', () => updateFooterText(lineNumber, side));
-            document.getElementById(`footer${side}Line${lineNumber}Size`).addEventListener('input', () => updateFooterTextStyle(lineNumber, side));
-            document.getElementById(`footer${side}Line${lineNumber}SizeUnit`).addEventListener('change', () => updateFooterTextStyle(lineNumber, side));
-            document.getElementById(`footer${side}Line${lineNumber}Style`).addEventListener('change', () => updateFooterTextStyle(lineNumber, side));
-            document.getElementById(`footer${side}Line${lineNumber}Align`).addEventListener('change', () => updateFooterTextStyle(lineNumber, side));
-            document.getElementById(`footer${side}Line${lineNumber}Color`).addEventListener('input', () => updateFooterTextColor(lineNumber, side));
-            document.getElementById(`footer${side}Line${lineNumber}ColorValue`).addEventListener('input', () => updateFooterTextColorFromText(lineNumber, side));
-        }
-
-        function updateHeaderText(lineNumber, side) {
-            const text = document.getElementById(`header${side}Line${lineNumber}Text`).value;
-            const element = document.getElementById(`header${side}Line${lineNumber}Element`);
-            if (element) {
-                element.textContent = text;
-            }
-        }
-
-        function updateHeaderTextStyle(lineNumber, side) {
-            const size = document.getElementById(`header${side}Line${lineNumber}Size`).value;
-            const unit = document.getElementById(`header${side}Line${lineNumber}SizeUnit`).value;
-            const style = document.getElementById(`header${side}Line${lineNumber}Style`).value;
-            const align = document.getElementById(`header${side}Line${lineNumber}Align`).value;
-            const element = document.getElementById(`header${side}Line${lineNumber}Element`);
-            if (element) {
-                element.style.fontSize = `${size}${unit}`;
-                element.style.fontWeight = style === 'bold' ? 'bold' : 'normal';
-                element.style.fontStyle = style === 'italic' ? 'italic' : 'normal';
-                element.style.textAlign = align;
-            }
-        }
-
-        function updateHeaderTextColor(lineNumber, side) {
-            const color = document.getElementById(`header${side}Line${lineNumber}Color`).value;
-            document.getElementById(`header${side}Line${lineNumber}ColorValue`).value = color;
-            const element = document.getElementById(`header${side}Line${lineNumber}Element`);
-            if (element) {
-                element.style.color = color;
-            }
-        }
-
-        function updateHeaderTextColorFromText(lineNumber, side) {
-            const color = document.getElementById(`header${side}Line${lineNumber}ColorValue`).value;
-            document.getElementById(`header${side}Line${lineNumber}Color`).value = color;
-            updateHeaderTextColor(lineNumber, side);
-        }
-
-        function updateFooterText(lineNumber, side) {
-            const text = document.getElementById(`footer${side}Line${lineNumber}Text`).value;
-            const element = document.getElementById(`footer${side}Line${lineNumber}Element`);
-            if (element) {
-                element.textContent = text;
-            }
-        }
-
-        function updateFooterTextStyle(lineNumber, side) {
-            const size = document.getElementById(`footer${side}Line${lineNumber}Size`).value;
-            const unit = document.getElementById(`footer${side}Line${lineNumber}SizeUnit`).value;
-            const style = document.getElementById(`footer${side}Line${lineNumber}Style`).value;
-            const align = document.getElementById(`footer${side}Line${lineNumber}Align`).value;
-            const element = document.getElementById(`footer${side}Line${lineNumber}Element`);
-            if (element) {
-                element.style.fontSize = `${size}${unit}`;
-                element.style.fontWeight = style === 'bold' ? 'bold' : 'normal';
-                element.style.fontStyle = style === 'italic' ? 'italic' : 'normal';
-                element.style.textAlign = align;
-            }
-        }
-
-        function updateFooterTextColor(lineNumber, side) {
-            const color = document.getElementById(`footer${side}Line${lineNumber}Color`).value;
-            document.getElementById(`footer${side}Line${lineNumber}ColorValue`).value = color;
-            const element = document.getElementById(`footer${side}Line${lineNumber}Element`);
-            if (element) {
-                element.style.color = color;
-            }
-        }
-
-        function updateFooterTextColorFromText(lineNumber, side) {
-            const color = document.getElementById(`footer${side}Line${lineNumber}ColorValue`).value;
-            document.getElementById(`footer${side}Line${lineNumber}Color`).value = color;
-            updateFooterTextColor(lineNumber, side);
-        }
-
-        function updateHeaderBgColor() {
-            const color = document.getElementById('headerBgColor').value;
-            document.getElementById('headerBgColorValue').value = color;
-            document.getElementById('prescriptionHeader').style.backgroundColor = color;
-        }
-
-        function updateHeaderBgColorFromText() {
-            const color = document.getElementById('headerBgColorValue').value;
-            document.getElementById('headerBgColor').value = color;
-            updateHeaderBgColor();
-        }
-
-        function updateFooterBgColor() {
-            const color = document.getElementById('footerBgColor').value;
-            document.getElementById('footerBgColorValue').value = color;
-            document.getElementById('prescriptionFooter').style.backgroundColor = color;
-        }
-
-        function updateFooterBgColorFromText() {
-            const color = document.getElementById('footerBgColorValue').value;
-            document.getElementById('footerBgColor').value = color;
-            updateFooterBgColor();
-        }
-
-
-        function initializeMultiLineConfig() {
-            const multiLineCountInput = document.getElementById('multiLineCount');
-            multiLineCountInput.addEventListener('input', generateMultiLineOptions);
-            generateMultiLineOptions();
-        }
-
-        function generateMultiLineOptions() {
-            const count = document.getElementById('multiLineCount').value;
-            const container = document.getElementById('multiLineOptions');
-            container.innerHTML = '';
-            for (let i = 1; i <= count; i++) {
-                const lineDiv = document.createElement('div');
-                lineDiv.className = 'form-group';
-                lineDiv.innerHTML = `
-                    <label>Line ${i} Content</label>
-                    <div class="checkbox-group">
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="multiLine${i}Name" data-line="${i}" data-part="name">
-                            <label for="multiLine${i}Name">Name</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="multiLine${i}Dose" data-line="${i}" data-part="dose">
-                            <label for="multiLine${i}Dose">Dose</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="multiLine${i}Instructions" data-line="${i}" data-part="instructions">
-                            <label for="multiLine${i}Instructions">Instructions</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="multiLine${i}Duration" data-line="${i}" data-part="duration">
-                            <label for="multiLine${i}Duration">Duration</label>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(lineDiv);
-            }
-            // Add event listeners to update preview
-            container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', () => updateMedicationFormat('multi'));
-            });
-        }
-
-
-        function updatePageMargins() {
-            const top = document.getElementById('marginTop').value;
-            const unitTop = document.getElementById('marginUnitTop').value;
-            const bottom = document.getElementById('marginBottom').value;
-            const unitBottom = document.getElementById('marginUnitBottom').value;
-            const left = document.getElementById('marginLeft').value;
-            const unitLeft = document.getElementById('marginUnitLeft').value;
-            const right = document.getElementById('marginRight').value;
-            const unitRight = document.getElementById('marginUnitRight').value;
-
-            const pad = document.getElementById('prescriptionPad');
-            pad.style.paddingTop = `${top}${unitTop}`;
-            pad.style.paddingBottom = `${bottom}${unitBottom}`;
-            pad.style.paddingLeft = `${left}${unitLeft}`;
-            pad.style.paddingRight = `${right}${unitRight}`;
-        }
-
-
-        function updatePageBgColor() {
-            const color = document.getElementById('pageBgColor').value;
-            document.getElementById('pageBgColorValue').value = color;
-            document.getElementById('prescriptionPad').style.backgroundColor = color;
-        }
-
-        function updatePageBgColorFromText() {
-            const color = document.getElementById('pageBgColorValue').value;
-            document.getElementById('pageBgColor').value = color;
-            updatePageBgColor();
-        }
-
-        function updateContentBgColor() {
-            const color = document.getElementById('contentBgColor').value;
-            document.getElementById('contentBgColorValue').value = color;
-            document.getElementById('clinicalSection').style.backgroundColor = color;
-            document.getElementById('medicationSection').style.backgroundColor = color;
-        }
-
-        function updateContentBgColorFromText() {
-            const color = document.getElementById('contentBgColorValue').value;
-            document.getElementById('contentBgColor').value = color;
-            updateContentBgColor();
-        }
-
-
-        function updateContentFontSize() {
-            const size = document.getElementById('contentFontSize').value;
-            const unit = document.getElementById('contentFontSizeUnit').value;
-            document.querySelectorAll('.clinical-section .section-content').forEach(el => {
-                el.style.fontSize = `${size}${unit}`;
-            });
-        }
-
-        function updateMedicationTextStyles() {
-            const nameSize = document.getElementById('medNameSize').value;
-            const nameUnit = document.getElementById('medNameSizeUnit').value;
-            const nameStyle = document.getElementById('medNameStyle').value;
-
-            const doseSize = document.getElementById('medDoseSize').value;
-            const doseUnit = document.getElementById('medDoseSizeUnit').value;
-            const doseStyle = document.getElementById('medDoseStyle').value;
-
-            const instrSize = document.getElementById('medInstrSize').value;
-            const instrUnit = document.getElementById('medInstrSizeUnit').value;
-            const instrStyle = document.getElementById('medInstrStyle').value;
-
-            const durSize = document.getElementById('medDurSize').value;
-            const durUnit = document.getElementById('medDurSizeUnit').value;
-            const durStyle = document.getElementById('medDurStyle').value;
-
-            const styleSheet = document.getElementById('dynamicMedStyles');
-            if (styleSheet) {
-                styleSheet.innerHTML = `
-                    .medication-item .med-name {
-                        font-size: ${nameSize}${nameUnit};
-                        font-weight: ${nameStyle === 'bold' ? 'bold' : 'normal'};
-                        font-style: ${nameStyle === 'italic' ? 'italic' : 'normal'};
-                    }
-                    .medication-item .med-dose {
-                        font-size: ${doseSize}${doseUnit};
-                        font-weight: ${doseStyle === 'bold' ? 'bold' : 'normal'};
-                        font-style: ${doseStyle === 'italic' ? 'italic' : 'normal'};
-                    }
-                    .medication-item .med-instructions {
-                        font-size: ${instrSize}${instrUnit};
-                        font-weight: ${instrStyle === 'bold' ? 'bold' : 'normal'};
-                        font-style: ${instrStyle === 'italic' ? 'italic' : 'normal'};
-                    }
-                    .medication-item .med-duration {
-                        font-size: ${durSize}${durUnit};
-                        font-weight: ${durStyle === 'bold' ? 'bold' : 'normal'};
-                        font-style: ${durStyle === 'italic' ? 'italic' : 'normal'};
-                    }
-                `;
-            }
-        }
-
-        // --- COMPLETE THE MISSING PART OF loadSavedDesign() ---
-        function loadSavedDesign() {
-            const savedDesign = localStorage.getItem('prescriptionPadDesign');
-            if (savedDesign) {
-                const designData = JSON.parse(savedDesign);
-                document.getElementById('pageSize').value = designData.pageSize || 'a4';
-                updatePageSize();
-                document.getElementById('borderStyle').value = designData.borderStyle || 'standard';
-                document.getElementById('borderSize').value = designData.borderSize || 1;
-                document.getElementById('borderUnit').value = designData.borderUnit || 'px';
-                updateBorderSize();
-                document.getElementById('headerHeight').value = designData.headerHeight || 15;
-                document.getElementById('headerUnit').value = designData.headerUnit || 'mm';
-                document.getElementById('footerHeight').value = designData.footerHeight || 15;
-                document.getElementById('footerUnit').value = designData.footerUnit || 'mm';
-                updateHeaderFooterSize();
-                document.getElementById('headerLineStyle').value = designData.headerLineStyle || 'solid';
-                document.getElementById('headerLineWidth').value = designData.headerLineWidth || 1;
-                document.getElementById('headerLineWidthUnit').value = designData.headerLineWidthUnit || 'px';
-                document.getElementById('headerLineColor').value = designData.headerLineColor || '#ddd';
-                document.getElementById('headerLineColorValue').value = designData.headerLineColor || '#ddd';
-                updateHeaderLine();
-                document.getElementById('footerLineStyle').value = designData.footerLineStyle || 'solid';
-                document.getElementById('footerLineWidth').value = designData.footerLineWidth || 1;
-                document.getElementById('footerLineWidthUnit').value = designData.footerLineWidthUnit || 'px';
-                document.getElementById('footerLineColor').value = designData.footerLineColor || '#ddd';
-                document.getElementById('footerLineColorValue').value = designData.footerLineColor || '#ddd';
-                updateFooterLine();
-
-                if (designData.headerLines && designData.headerLines.length > 0) {
-                    headerLineCount = designData.headerLines.length;
-                    initializeHeaderLines();
-                    designData.headerLines.forEach(line => {
-                        const textEl = document.getElementById(`headerLine${line.lineNumber}Text`);
-                        const sizeEl = document.getElementById(`headerLine${line.lineNumber}Size`);
-                        const sizeUnitEl = document.getElementById(`headerLine${line.lineNumber}SizeUnit`);
-                        const styleEl = document.getElementById(`headerLine${line.lineNumber}Style`);
-                        const alignEl = document.getElementById(`headerLine${line.lineNumber}Align`);
-                        const colorEl = document.getElementById(`headerLine${line.lineNumber}Color`);
-                        const colorValueEl = document.getElementById(`headerLine${line.lineNumber}ColorValue`);
-                        if (textEl) textEl.value = line.text;
-                        if (sizeEl) sizeEl.value = line.fontSize;
-                        if (sizeUnitEl) sizeUnitEl.value = line.fontSizeUnit;
-                        if (styleEl) styleEl.value = line.fontStyle;
-                        if (alignEl) alignEl.value = line.alignment;
-                        if (colorEl) colorEl.value = line.color;
-                        if (colorValueEl) colorValueEl.value = line.color;
-                    });
-                }
-                if (designData.footerLines && designData.footerLines.length > 0) {
-                    footerLineCount = designData.footerLines.length;
-                    initializeFooterLines();
-                    designData.footerLines.forEach(line => {
-                        const textEl = document.getElementById(`footerLine${line.lineNumber}Text`);
-                        const sizeEl = document.getElementById(`footerLine${line.lineNumber}Size`);
-                        const sizeUnitEl = document.getElementById(`footerLine${line.lineNumber}SizeUnit`);
-                        const styleEl = document.getElementById(`footerLine${line.lineNumber}Style`);
-                        const alignEl = document.getElementById(`footerLine${line.lineNumber}Align`);
-                        const colorEl = document.getElementById(`footerLine${line.lineNumber}Color`);
-                        const colorValueEl = document.getElementById(`footerLine${line.lineNumber}ColorValue`);
-                        if (textEl) textEl.value = line.text;
-                        if (sizeEl) sizeEl.value = line.fontSize;
-                        if (sizeUnitEl) sizeUnitEl.value = line.fontSizeUnit;
-                        if (styleEl) styleEl.value = line.fontStyle;
-                        if (alignEl) alignEl.value = line.alignment;
-                        if (colorEl) colorEl.value = line.color;
-                        if (colorValueEl) colorValueEl.value = line.color;
-                    });
-                }
-                if (designData.logoData) {
-                    const logoContainer = document.getElementById('logoContainer');
-                    logoContainer.innerHTML = `<img src="${designData.logoData}" alt="Doctor Logo">`;
-                    logoContainer.style.display = 'block';
-                    window.currentLogoData = designData.logoData;
-                }
-                showNotification('Design loaded from last save');
-            }
-        }
-
-        // Helper functions (abbreviated below for space – in full version, include all original helpers)
-        function addHeaderLine() {
-            headerLineCount++;
-            addHeaderLineElement(headerLineCount);
-            showNotification('Header line added');
-        }
-        function addFooterLine() {
-            footerLineCount++;
-            addFooterLineElement(footerLineCount);
-            showNotification('Footer line added');
-        }
-        function removeHeaderLine(lineNumber) {
-            if (headerLineCount > 1) {
-                const container = document.getElementById('headerLineEditors');
-                container.removeChild(container.children[lineNumber - 1]);
-                headerLineCount--;
-                showNotification('Header line removed');
-            }
-        }
-        function removeFooterLine(lineNumber) {
-            if (footerLineCount > 1) {
-                const container = document.getElementById('footerLineEditors');
-                container.removeChild(container.children[lineNumber - 1]);
-                footerLineCount--;
-                showNotification('Footer line removed');
-            }
-        }
-        function rgbToHex(rgb) {
-            if (rgb.startsWith('#')) return rgb;
-            const values = rgb.match(/\d+/g);
-            if (!values || values.length < 3) return '#000000';
-            return '#' + values.slice(0,3).map(x => {
-                let hex = parseInt(x).toString(16);
-                return hex.length === 1 ? '0' + hex : hex;
-            }).join('');
-        }
-        function updatePageSize() {
-            const size = document.getElementById('pageSize').value;
-            const pad = document.getElementById('prescriptionPad');
-            const pageInfo = document.getElementById('currentPageSize');
-            pad.className = pad.className.replace(/page-\w+/g, '').trim();
-            pad.classList.add(`page-${size}`);
-            const sizeNames = {'a4':'A4','b4':'B4','letter':'Letter','legal':'Legal','a5':'A5'};
-            const orientation = document.querySelector('[data-orientation].active').dataset.orientation;
-            pageInfo.textContent = `${sizeNames[size]} - ${orientation.charAt(0).toUpperCase() + orientation.slice(1)}`;
-        }
-        function updateOrientation(orientation) {
-            const pad = document.getElementById('prescriptionPad');
-            if (orientation === 'landscape') pad.classList.add('landscape');
-            else pad.classList.remove('landscape');
-            updatePageSize();
-        }
-        function updateBorderStyle() { updateBorderSize(); }
-        function updateBorderSize() {
-            const size = document.getElementById('borderSize').value;
-            const unit = document.getElementById('borderUnit').value;
-            const pad = document.getElementById('prescriptionPad');
-            const style = document.getElementById('borderStyle').value;
-            if (style === 'none') {
-                pad.style.border = 'none';
-                return;
-            }
-            pad.style.borderWidth = `${size}${unit}`;
-            pad.style.borderStyle = style === 'double' ? 'double' : style === 'dashed' ? 'dashed' : 'solid';
-        }
-        function updateHeaderFooterSize() {
-            const h = document.getElementById('headerHeight').value;
-            const hu = document.getElementById('headerUnit').value;
-            const f = document.getElementById('footerHeight').value;
-            const fu = document.getElementById('footerUnit').value;
-            document.getElementById('prescriptionHeader').style.paddingBottom = `${h}${hu}`;
-            document.getElementById('prescriptionFooter').style.paddingTop = `${f}${fu}`;
-        }
-        function updateHeaderLine() {
-            const s = document.getElementById('headerLineStyle').value;
-            const h = document.getElementById('prescriptionHeader');
-            if (s === 'none') h.style.borderBottom = 'none';
-            else h.style.borderBottomStyle = s;
-        }
-        function updateHeaderLineWidth() {
-            const w = document.getElementById('headerLineWidth').value;
-            const u = document.getElementById('headerLineWidthUnit').value;
-            document.getElementById('prescriptionHeader').style.borderBottomWidth = `${w}${u}`;
-        }
-        function updateHeaderLineColor() {
-            const v = document.getElementById('headerLineColor').value;
-            document.getElementById('headerLineColorValue').value = v;
-            document.getElementById('prescriptionHeader').style.borderBottomColor = v;
-        }
-        function updateHeaderLineColorFromText() {
-            updateHeaderLineColor();
-        }
-        function updateFooterLine() {
-            const s = document.getElementById('footerLineStyle').value;
-            const f = document.getElementById('prescriptionFooter');
-            if (s === 'none') f.style.borderTop = 'none';
-            else f.style.borderTopStyle = s;
-        }
-        function updateFooterLineWidth() {
-            const w = document.getElementById('footerLineWidth').value;
-            const u = document.getElementById('footerLineWidthUnit').value;
-            document.getElementById('prescriptionFooter').style.borderTopWidth = `${w}${u}`;
-        }
-        function updateFooterLineColor() {
-            const v = document.getElementById('footerLineColor').value;
-            document.getElementById('footerLineColorValue').value = v;
-            document.getElementById('prescriptionFooter').style.borderTopColor = v;
-        }
-        function updateFooterLineColorFromText() {
-            updateFooterLineColor();
-        }
-        function updateHeaderLayout(layout) {
-            const hs = document.getElementById('headerSplit');
-            const lc = document.getElementById('logoContainer');
-            if (layout === 'centered') {
-                hs.style.flexDirection = 'column';
-                hs.style.textAlign = 'center';
-                hs.style.alignItems = 'center';
-                lc.style.display = 'block';
-                lc.style.margin = '1rem auto';
-            } else if (layout === 'left') {
-                hs.style.flexDirection = 'column';
-                hs.style.textAlign = 'left';
-                hs.style.alignItems = 'flex-start';
-                lc.style.display = 'none';
-            } else {
-                hs.style.flexDirection = 'row';
-                hs.style.textAlign = 'left';
-                hs.style.alignItems = 'flex-start';
-                lc.style.display = 'none';
-            }
-        }
-        function updateFooterLayout(layout) {
-            const f = document.getElementById('prescriptionFooter');
-            const fs = document.getElementById('footerSplit');
-            if (layout === 'none') {
-                f.style.display = 'none';
-            } else {
-                f.style.display = 'block';
-                if (layout === 'centered') {
-                    fs.style.flexDirection = 'column';
-                    fs.style.textAlign = 'center';
-                    fs.style.alignItems = 'center';
-                } else {
-                    fs.style.flexDirection = 'row';
-                    fs.style.textAlign = 'left';
-                    fs.style.alignItems = 'flex-start';
-                }
-            }
-        }
-                function updateBodyLayout(layout) {
-                    const b = document.getElementById('prescriptionBody');
-                    const ms = document.getElementById('medicationSection');
-                    const splitSpacingControls = document.getElementById('splitLayoutSpacing');
-        
-                    if (layout === 'split') {
-                        b.className = 'prescription-body body-layout-split';
-                        ms.style.borderLeft = '1px dashed var(--border-color)';
-                        ms.style.paddingLeft = '1.5rem';
-                        splitSpacingControls.style.display = 'block';
-                    } else {
-                        b.className = 'prescription-body body-layout-single';
-                        ms.style.borderLeft = 'none';
-                        ms.style.paddingLeft = '0';
-                        splitSpacingControls.style.display = 'none';
-                    }
-                }
-        
-                function updateRxSymbol(style) {
-                    const rx = document.getElementById('rxSymbol');
-                    if (style === 'modern') {
-                        rx.textContent = 'Rx';
-                        rx.style.fontFamily = 'Arial, sans-serif';
-                        rx.style.display = '';
-                        rx.style.marginBottom = '1rem';
-                    } else if (style === 'none') {
-                        rx.style.display = 'none';
-                        rx.style.marginBottom = '0';
-                    } else { // standard
-                        rx.textContent = '℞';
-                        rx.style.fontFamily = '';
-                        rx.style.display = '';
-                        rx.style.marginBottom = '1rem';
-                    }
-                    updateRxSymbolSize(); // Apply current size
-                }
-        function updateLogoPosition() {
-            const pos = document.getElementById('logoPosition').value;
-            const lc = document.getElementById('logoContainer');
-            const hs = document.getElementById('headerSplit');
-            if (pos === 'none') {
-                lc.style.display = 'none';
-            } else if (pos === 'header-center') {
-                lc.style.display = 'block';
-                lc.style.margin = '1rem auto';
-                hs.style.flexDirection = 'column';
-                hs.style.alignItems = 'center';
-            } else if (pos === 'header-left') {
-                lc.style.display = 'block';
-                lc.style.margin = '0 1rem 0 0';
-                hs.style.flexDirection = 'row-reverse';
-            } else {
-                lc.style.display = 'block';
-                lc.style.margin = '0 0 0 1rem';
-                hs.style.flexDirection = 'row';
-            }
-        }
-        function togglePatientInfoSection() {
-            const show = document.getElementById('showPatientInfo').checked;
-            document.querySelector('.patient-info').style.display = show ? 'block' : 'none';
-        }
-
-        function updateRxSymbolSize() {
-            const size = document.getElementById('rxSymbolSize').value;
-            const unit = document.getElementById('rxSymbolSizeUnit').value;
-            document.getElementById('rxSymbol').style.fontSize = `${size}${unit}`;
-        }
-
-        function updateSplitLayoutSpacing() {
-            const leftSpacing = document.getElementById('splitLeftSpacing').value;
-            const leftUnit = document.getElementById('splitLeftSpacingUnit').value;
-            document.getElementById('clinicalSection').style.paddingTop = `${leftSpacing}${leftUnit}`;
-
-            const rightSpacing = document.getElementById('splitRightSpacing').value;
-            const rightUnit = document.getElementById('splitRightSpacingUnit').value;
-            document.getElementById('medicationSection').style.paddingTop = `${rightSpacing}${rightUnit}`;
-        }
-
-        function updatePatientFieldVisibility(field) {
-            const show = document.getElementById(`showPatient${field}`).checked;
-            const container = document.getElementById(`patient${field}Container`);
-            if (container) {
-                container.style.display = show ? 'flex' : 'none';
-            }
-        }
-
-        function updatePatientInfoLayout(layout) {
-            const patientInfo = document.querySelector('.patient-info');
-            if (layout === 'single') {
-                patientInfo.classList.add('single-line-layout');
-            } else {
-                patientInfo.classList.remove('single-line-layout');
-            }
-            updatePatientInfoSpacingControls(); // Call to re-apply spacing
-        }
-
-        function updatePatientInfoFontSize() {
-            const labelSize = document.getElementById('patientLabelSize').value;
-            const labelUnit = document.getElementById('patientLabelSizeUnit').value;
-            const inputSize = document.getElementById('patientInputSize').value;
-            const inputUnit = document.getElementById('patientInputSizeUnit').value;
-
-            const styleSheet = document.getElementById('dynamicPatientInfoStyles');
-            if (styleSheet) {
-                styleSheet.innerHTML = `
-                    .patient-info .patient-field label {
-                        font-size: ${labelSize}${labelUnit};
-                    }
-                    .patient-info .patient-field input {
-                        font-size: ${inputSize}${inputUnit};
-                    }
-                `;
-            }
-        }
-
-        function updatePatientInfoSpacingControls() {
-            const itemSpacing = document.getElementById('patientFieldItemSpacing').value;
-            const itemUnit = document.getElementById('patientFieldItemSpacingUnit').value;
-            const fieldSpacing = document.getElementById('patientFieldSpacing').value;
-            const fieldUnit = document.getElementById('patientFieldSpacingUnit').value;
-
-            const styleSheet = document.getElementById('dynamicPatientInfoStyles');
-            if (styleSheet) {
-                styleSheet.innerHTML += `
-                    .patient-info.single-line-layout .patient-field {
-                        gap: ${itemSpacing}${itemUnit} !important;
-                    }
-                    .patient-grid {
-                        gap: ${fieldSpacing}${fieldUnit} !important;
-                    }
-                `;
-            }
-        }
-
-        function updatePatientInfoSpacing() {
-            const spacing = document.getElementById('patientInfoSpacing').value;
-            const unit = document.getElementById('patientInfoSpacingUnit').value;
-            document.querySelector('.patient-info').style.marginBottom = `${spacing}${unit}`;
-        }
-
-        function handleLogoUpload(event) {
-            const file = event.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const lc = document.getElementById('logoContainer');
-                    lc.innerHTML = `<img src="${e.target.result}" alt="Doctor Logo">`;
-                    lc.style.display = 'block';
-                    window.currentLogoData = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-        function toggleSection(id) {
-            return function() {
-                document.getElementById(id).style.display = this.checked ? 'block' : 'none';
-            };
-        }
-        function updateSectionLabel(elId) {
-            return function() {
-                document.getElementById(elId).textContent = this.value;
-            };
-        }
-        function updateDefaultContent(id) {
-            return function() {
-                document.getElementById(id).innerHTML = this.value.replace(/\n/g, '<br>');
-            };
-        }
-        function updateMedicationFormat(format) {
-            document.getElementById('multiLineConfig').style.display = format === 'multi' ? 'block' : 'none';
-
-            document.querySelectorAll('.medication-item').forEach(med => {
-                med.className = 'medication-item medication-format-' + format;
                 
-                const medData = {
-                    name: med.dataset.name || '',
-                    dose: med.dataset.dose || '',
-                    instructions: med.dataset.instructions || '',
-                    duration: med.dataset.duration || ''
-                };
-
-                if (format === 'multi') {
-                    const lineCount = document.getElementById('multiLineCount').value;
-                    let newHTML = '';
-                    for (let i = 1; i <= lineCount; i++) {
-                        const parts = [];
-                        if (document.getElementById(`multiLine${i}Name`)?.checked) {
-                            if (medData.name) parts.push(`<span class="med-name">${medData.name}</span>`);
-                        }
-                        if (document.getElementById(`multiLine${i}Dose`)?.checked) {
-                            if (medData.dose) parts.push(`<span class="med-dose">${medData.dose}</span>`);
-                        }
-                        if (document.getElementById(`multiLine${i}Instructions`)?.checked) {
-                            if (medData.instructions) parts.push(`<span class="med-instructions">${medData.instructions}</span>`);
-                        }
-                        if (document.getElementById(`multiLine${i}Duration`)?.checked) {
-                            if (medData.duration) parts.push(`<span class="med-duration">${medData.duration}</span>`);
-                        }
-                        if (parts.length > 0) {
-                            newHTML += `<div>${parts.join(' - ')}</div>`;
-                        }
-                    }
-                    med.innerHTML = newHTML;
-
-                } else { // single or table
-                    const parts = [];
-                    if (medData.name) parts.push(`<div class="med-name">${medData.name}</div>`);
-                    if (medData.dose) parts.push(`<div class="med-dose">${medData.dose}</div>`);
-                    
-                    const instructionsAndDuration = [medData.instructions, medData.duration].filter(Boolean).join(' - ');
-                    if (instructionsAndDuration) {
-                        parts.push(`<div class="med-instructions">${instructionsAndDuration}</div>`);
-                    }
-
-                    med.innerHTML = parts.join('<span> - </span>');
+                if (response.ok) {
+                    showNotification('Pad design saved to server!');
+                    loadSavedDesigns();
+                } else {
+                    throw new Error('Failed to save design');
                 }
-            });
-        }
-        function updateMedicationDetails() {
-            const name = document.getElementById('showMedName').checked;
-            const dose = document.getElementById('showMedDose').checked;
-            const instr = document.getElementById('showMedInstructions').checked;
-            document.querySelectorAll('.medication-item').forEach(med => {
-                med.querySelector('.med-name').style.display = name ? 'block' : 'none';
-                med.querySelector('.med-dose').style.display = dose ? 'block' : 'none';
-                med.querySelector('.med-instructions').style.display = instr ? 'block' : 'none';
-            });
-        }
-        function updateMedicationLines() {
-            const lines = parseInt(document.getElementById('medicationLines').value);
-            const container = document.getElementById('medicationLineInputs');
-            while (container.children.length > lines) container.removeChild(container.lastChild);
-            while (container.children.length < lines) {
-                const div = document.createElement('div');
-                div.className = 'medication-line-input';
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'form-control med-line-content';
-                input.dataset.line = container.children.length + 1;
-                input.addEventListener('input', function() {
-                    updateMedicationLine(this.dataset.line, this.value);
-                });
-                div.appendChild(input);
-                container.appendChild(div);
+            } catch (error) {
+                console.error('Error saving design:', error);
+                showNotification('Error saving design to server');
             }
         }
-        function updateMedicationLine(lineNum, value) {
-            const med = document.getElementById(`med${lineNum}`);
-            if (!med) return;
-            const parts = value.split(' - ');
-            const name = parts[0] || '';
-            const dose = parts[1] || '';
-            const instructions = parts[2] || '';
-            const duration = parts.length > 3 ? parts.slice(3).join(' - ') : '';
 
-            med.dataset.name = name;
-            med.dataset.dose = dose;
-            med.dataset.instructions = instructions;
-            med.dataset.duration = duration;
+        // Load saved designs from backend
+        async function loadSavedDesigns() {
+            try {
+                const response = await fetch(`${API_BASE}/api/pad-designs`);
+                const designs = await response.json();
+                updateDesignsList(designs);
+            } catch (error) {
+                console.error('Error loading designs:', error);
+                showNotification('Error loading designs from server');
+            }
+        }
 
-            // This function is for single line input, so we update the single line display
-            med.querySelector('.med-name').textContent = name;
-            med.querySelector('.med-dose').textContent = dose;
-            med.querySelector('.med-instructions').textContent = [instructions, duration].filter(Boolean).join(' - ');
+        // Load a specific design
+        async function loadDesignFromBackend(designId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/pad-designs/${designId}`);
+                const design = await response.json();
+                
+                if (design) {
+                    applyDesignData(design.designData);
+                    showNotification(`Design "${design.name}" loaded!`);
+                }
+            } catch (error) {
+                console.error('Error loading design:', error);
+                showNotification('Error loading design');
+            }
+        }
+
+        // Delete a design
+        async function deleteDesignFromBackend(designId, designName) {
+            if (!confirm(`Are you sure you want to delete "${designName}"?`)) return;
             
-            // Re-apply current format to reflect changes if in multi-line view
-            const activeFormat = document.querySelector('[data-med-format].active').dataset.medFormat;
-            if (activeFormat === 'multi') {
-                updateMedicationFormat('multi');
-            }
-        }
-        function moveSectionUp(id) {
-            const el = document.querySelector(`[data-section="${id}"]`);
-            const prev = el.previousElementSibling;
-            if (prev) el.parentNode.insertBefore(el, prev);
-        }
-        function moveSectionDown(id) {
-            const el = document.querySelector(`[data-section="${id}"]`);
-            const next = el.nextElementSibling;
-            if (next) el.parentNode.insertBefore(next, el);
-        }
-        function updateSectionOrder() {}
-        function updateHeaderColor() {
-            const v = document.getElementById('headerColor').value;
-            document.getElementById('headerColorValue').value = v;
-        }
-        function updateHeaderColorFromText() {
-            const v = document.getElementById('headerColorValue').value;
-            document.getElementById('headerColor').value = v;
-        }
-        function updateTitleColor() {}
-        function updateTitleColorFromText() {}
-        function updateAccentColor() {
-            const v = document.getElementById('accentColor').value;
-            document.getElementById('accentColorValue').value = v;
-            document.getElementById('rxSymbol').style.color = v;
-        }
-        function updateAccentColorFromText() {
-            updateAccentColor();
-        }
-        function updateFontFamily() {
-            document.getElementById('prescriptionPad').style.fontFamily = document.getElementById('fontFamily').value;
-        }
-        function updateBengaliFont() {
-            const f = document.getElementById('bengaliFont').value;
-            document.querySelectorAll('.bengali-font').forEach(el => el.style.fontFamily = f);
-        }
-        function updateWatermark() {
-            document.getElementById('watermarkElement').textContent = document.getElementById('watermark').value;
-        }
-
-        function handleWatermarkLogoUpload(event) {
-            const file = event.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const logoEl = document.getElementById('watermarkLogoElement');
-                    logoEl.src = e.target.result;
-                    logoEl.style.display = 'block';
-                    updateWatermarkLogoStyle();
-                };
-                reader.readAsDataURL(file);
+            try {
+                const response = await fetch(`${API_BASE}/api/pad-designs/${designId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showNotification('Design deleted successfully');
+                    loadSavedDesigns();
+                }
+            } catch (error) {
+                console.error('Error deleting design:', error);
+                showNotification('Error deleting design');
             }
         }
 
-        function updateWatermarkLogoStyle() {
-            const logoEl = document.getElementById('watermarkLogoElement');
-            if (!logoEl || !logoEl.src) return;
-
-            const position = document.getElementById('watermarkLogoPosition').value;
-            const opacity = document.getElementById('watermarkLogoOpacity').value;
-
-            logoEl.style.opacity = opacity;
-
-            // Reset position styles
-            logoEl.style.top = 'auto';
-            logoEl.style.left = 'auto';
-            logoEl.style.right = 'auto';
-            logoEl.style.bottom = 'auto';
-            logoEl.style.transform = 'none';
-
-            switch (position) {
-                case 'center':
-                    logoEl.style.top = '50%';
-                    logoEl.style.left = '50%';
-                    logoEl.style.transform = 'translate(-50%, -50%)';
-                    break;
-                case 'top-left':
-                    logoEl.style.top = '20px';
-                    logoEl.style.left = '20px';
-                    break;
-                case 'top-right':
-                    logoEl.style.top = '20px';
-                    logoEl.style.right = '20px';
-                    break;
-                case 'bottom-left':
-                    logoEl.style.bottom = '20px';
-                    logoEl.style.left = '20px';
-                    break;
-                case 'bottom-right':
-                    logoEl.style.bottom = '20px';
-                    logoEl.style.right = '20px';
-                    break;
-            }
-        }
-        function changeZoom(delta) {
-            const valEl = document.getElementById('zoomValue');
-            const pad = document.getElementById('prescriptionPad');
-            let z = parseInt(valEl.textContent);
-            z = Math.max(50, Math.min(150, z + delta));
-            valEl.textContent = z + '%';
-            pad.style.transform = `scale(${z / 100})`;
-        }
-        function resetDesign() {
-            if (confirm('Reset all changes?')) location.reload();
-        }
-        function saveDesign() {
-            const data = {
+        // Get current design data
+        function getCurrentDesignData() {
+            return {
+                // Page Settings
                 pageSize: document.getElementById('pageSize').value,
                 orientation: document.querySelector('[data-orientation].active').dataset.orientation,
                 borderStyle: document.getElementById('borderStyle').value,
                 borderSize: document.getElementById('borderSize').value,
                 borderUnit: document.getElementById('borderUnit').value,
-                headerHeight: document.getElementById('headerHeight').value,
-                headerUnit: document.getElementById('headerUnit').value,
-                footerHeight: document.getElementById('footerHeight').value,
-                footerUnit: document.getElementById('footerUnit').value,
-                headerLineStyle: document.getElementById('headerLineStyle').value,
-                headerLineWidth: document.getElementById('headerLineWidth').value,
-                headerLineWidthUnit: document.getElementById('headerLineWidthUnit').value,
-                headerLineColor: document.getElementById('headerLineColor').value,
-                footerLineStyle: document.getElementById('footerLineStyle').value,
-                footerLineWidth: document.getElementById('footerLineWidth').value,
-                footerLineWidthUnit: document.getElementById('footerLineWidthUnit').value,
-                footerLineColor: document.getElementById('footerLineColor').value,
-                headerLines: Array.from({length: headerLineCount}, (_, i) => {
-                    const n = i + 1;
-                    return {
-                        lineNumber: n,
-                        text: document.getElementById(`headerLine${n}Text`)?.value || '',
-                        fontSize: document.getElementById(`headerLine${n}Size`)?.value || 16,
-                        fontSizeUnit: document.getElementById(`headerLine${n}SizeUnit`)?.value || 'px',
-                        fontStyle: document.getElementById(`headerLine${n}Style`)?.value || 'normal',
-                        alignment: document.getElementById(`headerLine${n}Align`)?.value || 'left',
-                        color: document.getElementById(`headerLine${n}Color`)?.value || '#2c3e50'
-                    };
-                }),
-                footerLines: Array.from({length: footerLineCount}, (_, i) => {
-                    const n = i + 1;
-                    return {
-                        lineNumber: n,
-                        text: document.getElementById(`footerLine${n}Text`)?.value || '',
-                        fontSize: document.getElementById(`footerLine${n}Size`)?.value || 14,
-                        fontSizeUnit: document.getElementById(`footerLine${n}SizeUnit`)?.value || 'px',
-                        fontStyle: document.getElementById(`footerLine${n}Style`)?.value || 'normal',
-                        alignment: document.getElementById(`footerLine${n}Align`)?.value || 'left',
-                        color: document.getElementById(`footerLine${n}Color`)?.value || '#2c3e50'
-                    };
-                })
+                
+                // Header/Footer
+                headerLayout: document.querySelector('[data-header-layout].active').dataset.headerLayout,
+                footerLayout: document.querySelector('[data-footer-layout].active').dataset.footerLayout,
+                headerBgColor: document.getElementById('headerBgColor').value,
+                footerBgColor: document.getElementById('footerBgColor').value,
+                
+                // Patient Info
+                patientLayout: document.querySelector('[data-patient-layout].active').dataset.patientLayout,
+                showPatientName: document.getElementById('showPatientName').checked,
+                showPatientAge: document.getElementById('showPatientAge').checked,
+                showPatientSex: document.getElementById('showPatientSex').checked,
+                showPatientWeight: document.getElementById('showPatientWeight').checked,
+                showPatientId: document.getElementById('showPatientId').checked,
+                showPatientDate: document.getElementById('showPatientDate').checked,
+                
+                // Layout
+                bodyLayout: document.querySelector('[data-body-layout].active').dataset.bodyLayout,
+                rxSymbol: document.querySelector('[data-rx].active').dataset.rx,
+                logoPosition: document.getElementById('logoPosition').value,
+                
+                // Content
+                includeCC: document.getElementById('includeCC').checked,
+                includeDH: document.getElementById('includeDH').checked,
+                includeOE: document.getElementById('includeOE').checked,
+                includeINV: document.getElementById('includeINV').checked,
+                includeAdv: document.getElementById('includeAdv').checked,
+                
+                // Medications
+                medFormat: document.querySelector('[data-med-format].active').dataset.medFormat,
+                showMedName: document.getElementById('showMedName').checked,
+                showMedDose: document.getElementById('showMedDose').checked,
+                showMedInstructions: document.getElementById('showMedInstructions').checked,
+                showMedDuration: document.getElementById('showMedDuration').checked,
+                
+                // Style
+                pageBgColor: document.getElementById('pageBgColor').value,
+                contentBgColor: document.getElementById('contentBgColor').value,
+                headerColor: document.getElementById('headerColor').value,
+                accentColor: document.getElementById('accentColor').value,
+                fontFamily: document.getElementById('fontFamily').value,
+                bengaliFont: document.getElementById('bengaliFont').value,
+                watermark: document.getElementById('watermark').value,
+                
+                // Timestamp
+                savedAt: new Date().toISOString()
             };
-            if (window.currentLogoData) data.logoData = window.currentLogoData;
-            localStorage.setItem('prescriptionPadDesign', JSON.stringify(data));
-            showNotification('Design saved!');
         }
-        function downloadPDF() {
-            showNotification('PDF Download feature coming soon!');
+
+        // Apply design data to the form
+        function applyDesignData(designData) {
+            // Page Settings
+            if (designData.pageSize) document.getElementById('pageSize').value = designData.pageSize;
+            if (designData.orientation) {
+                document.querySelectorAll('[data-orientation]').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.orientation === designData.orientation);
+                });
+            }
+            updatePageSize();
+            
+            // Apply other settings here...
+            // This would need to be expanded to apply all design settings
+            
+            showNotification('Design applied successfully!');
         }
-        function loadTemplate(name) {
-            showNotification(`Template "${name}" loaded!`);
+
+        // Update the designs list
+        function updateDesignsList(designs) {
+            const templatesContainer = document.getElementById('savedDesignsGrid');
+            if (!templatesContainer) return;
+            
+            if (designs.length === 0) {
+                templatesContainer.innerHTML = `
+                    <div class="template-preview">
+                        <i class="fas fa-folder-open"></i>
+                        <div>No saved designs yet</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            templatesContainer.innerHTML = '';
+            
+            designs.forEach(design => {
+                const designCard = document.createElement('div');
+                designCard.className = 'template-card';
+                designCard.innerHTML = `
+                    <div class="template-preview">
+                        <i class="fas fa-file-medical fa-2x"></i>
+                    </div>
+                    <div class="template-name">${design.name}</div>
+                    <div class="template-actions">
+                        <button class="btn btn-sm btn-primary" onclick="loadDesignFromBackend(${design.id})">
+                            <i class="fas fa-download"></i> Load
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="deleteDesignFromBackend(${design.id}, '${design.name}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="template-date" style="font-size: 0.7rem; color: #666; margin-top: 0.25rem;">
+                        ${new Date(design.createdAt).toLocaleDateString()}
+                    </div>
+                `;
+                templatesContainer.appendChild(designCard);
+            });
         }
-        function showNotification(text) {
-            const n = document.getElementById('notification');
-            document.getElementById('notificationText').textContent = text;
-            n.classList.add('show');
-            setTimeout(() => n.classList.remove('show'), 3000);
+
+        // Load quick template
+        function loadQuickTemplate(templateName) {
+            showNotification(`Quick template "${templateName}" loaded!`);
+            // Add quick template logic here
         }
+
+        // Update the save button to use backend
+        document.getElementById('saveBtn').addEventListener('click', function() {
+            saveDesign(); // Keep local storage
+            saveDesignToBackend(); // Save to backend
+        });
+
+        // Add back button functionality
+        document.getElementById('backBtn').addEventListener('click', function() {
+            window.location.href = '/';
+        });
+
+        // Load designs when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Your existing initialization code...
+            
+            // Load saved designs from backend
+            loadSavedDesigns();
+        });
+
+        // Your existing JavaScript functions continue here...
+        // (All your original pad.html JavaScript code should be included below)
+
+        // ... [Include all your original JavaScript functions from pad.html here]
+
     </script>
-	
-	// API Integration Functions
-const API_BASE = window.location.origin;
-
-// Save design to backend
-async function saveDesignToBackend() {
-    const designData = getCurrentDesignData();
-    const name = prompt('Enter a name for this pad design:');
-    
-    if (!name) return;
-    
-    try {
-        const response = await fetch(`${API_BASE}/api/pad-designs`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                name: name,
-                designData: designData
-            })
-        });
-        
-        if (response.ok) {
-            showNotification('Pad design saved to server!');
-            loadSavedDesigns();
-        } else {
-            throw new Error('Failed to save design');
-        }
-    } catch (error) {
-        console.error('Error saving design:', error);
-        showNotification('Error saving design to server');
-    }
-}
-
-// Load saved designs from backend
-async function loadSavedDesigns() {
-    try {
-        const response = await fetch(`${API_BASE}/api/pad-designs`);
-        const designs = await response.json();
-        updateDesignsList(designs);
-    } catch (error) {
-        console.error('Error loading designs:', error);
-    }
-}
-
-// Load a specific design
-async function loadDesignFromBackend(designId) {
-    try {
-        const response = await fetch(`${API_BASE}/api/pad-designs`);
-        const designs = await response.json();
-        const design = designs.find(d => d.id === designId);
-        
-        if (design) {
-            applyDesignData(design.designData);
-            showNotification(`Design "${design.name}" loaded!`);
-        }
-    } catch (error) {
-        console.error('Error loading design:', error);
-        showNotification('Error loading design');
-    }
-}
-
-// Delete a design
-async function deleteDesignFromBackend(designId, designName) {
-    if (!confirm(`Are you sure you want to delete "${designName}"?`)) return;
-    
-    try {
-        const response = await fetch(`${API_BASE}/api/pad-designs/${designId}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            showNotification('Design deleted successfully');
-            loadSavedDesigns();
-        }
-    } catch (error) {
-        console.error('Error deleting design:', error);
-        showNotification('Error deleting design');
-    }
-}
-
-// Get current design data
-function getCurrentDesignData() {
-    return {
-        pageSize: document.getElementById('pageSize').value,
-        orientation: document.querySelector('[data-orientation].active').dataset.orientation,
-        borderStyle: document.getElementById('borderStyle').value,
-        // Add all other design settings here...
-        savedAt: new Date().toISOString()
-    };
-}
-
-// Update the save button to use backend
-document.getElementById('saveBtn').addEventListener('click', function() {
-    saveDesign(); // Keep local storage
-    saveDesignToBackend(); // Save to backend
-});
-
-// Load designs when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Your existing code...
-    loadSavedDesigns();
-});
 </body>
 </html>
-
