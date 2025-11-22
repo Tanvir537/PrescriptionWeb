@@ -1,19 +1,26 @@
 {
-  "name": "prescweb",
+  "name": "medical-prescription-system",
   "version": "1.0.0",
-  "description": "A prescription web application",
+  "description": "Complete medical prescription system with doctor authentication",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "sqlite3": "^5.1.6",
-    "csv-parser": "^3.0.0"
-  }
+    "express": "^4.21.2",
+    "express-session": "^1.18.2",
+    "sqlite3": "^5.1.7",
+    "xlsx": "^0.18.5"
+  },
+  "keywords": [
+    "medical",
+    "prescription",
+    "doctor",
+    "healthcare"
+  ],
+  "author": "Medical System",
+  "license": "MIT"
 }
