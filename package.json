@@ -1,26 +1,16 @@
 {
-  "name": "medical-prescription-system",
+  "name": "prescriptionweb",
   "version": "1.0.0",
-  "description": "Complete medical prescription system with doctor authentication",
+  "description": "Enhanced Prescription Management System",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
+    "body-parser": "^1.20.3",
     "express": "^4.21.2",
     "express-session": "^1.18.2",
-    "sqlite3": "^5.1.7",
-    "xlsx": "^0.18.5"
-  },
-  "keywords": [
-    "medical",
-    "prescription",
-    "doctor",
-    "healthcare"
-  ],
-  "author": "Medical System",
-  "license": "MIT"
+    "sqlite3": "^5.1.7"
+  }
 }
