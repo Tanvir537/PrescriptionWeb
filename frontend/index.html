@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prescription UI</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="main-container">
@@ -419,8 +421,13 @@
                     </div>
                 </header>
                 <div class="templates-container">
+                    <div class="template-actions">
+                        <button class="create-template-btn" onclick="showTemplateEditor()">
+                            <i class="fas fa-plus"></i> Create New Template
+                        </button>
+                    </div>
                     <div class="template-grid" id="templateList">
-                        <!-- Templates will be loaded here dynamically -->
+                        <!-- Templates will be loaded here -->
                     </div>
                 </div>
             </div>
@@ -480,6 +487,42 @@
             </div>
         </div>
     </div>
+
+    <!-- Add Template Editor Modal (Place this at the bottom, before scripts) -->
+    <div id="templateEditorModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="templateEditorTitle">Create New Template</h3>
+                <span class="close-btn" onclick="closeTemplateEditor()">&times;</span>
+            </div>
+            <form id="templateForm" onsubmit="saveTemplateForm(event)">
+                <input type="hidden" id="templateId">
+                <div class="form-group">
+                    <label for="templateName">Template Name *</label>
+                    <input type="text" id="templateName" required placeholder="Enter template name">
+                </div>
+                <div class="form-group">
+                    <label for="templateContent">Template Content (JSON)</label>
+                    <textarea id="templateContent" rows="12" placeholder='{
+  "prescriptionItems": [],
+  "advice": "",
+  "patientDetails": {
+    "name": "",
+    "age": "",
+    "gender": "",
+    "regNo": ""
+  }
+}'></textarea>
+                    <small>Edit the JSON structure to customize your template</small>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="save-btn">Save Template</button>
+                    <button type="button" class="cancel-btn" onclick="closeTemplateEditor()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="notification" class="notification"></div>
     <script src="script.js"></script>
 </body>

@@ -1,105 +1,397 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const cors = require('cors');
 const path = require('path');
-const bodyParser = require('body-parser');
-const session = require('express-session');
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
-const port = 3000;
+const PORT = 3001;
 
-// Middleware - Serve frontend files from the frontend folder
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, '../frontend'))); // Serve from frontend folder
-app.use(session({
-    secret: 'prescription-system-secret-key',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }
-}));
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../frontend')));
 
-// SQLite Database
-const db = new sqlite3.Database('./prescription.db', (err) => {
+// Database connection
+const db = new sqlite3.Database('../prescweb_main.db', (err) => {
+  if (err) {
+    console.error(err.message);
+  }
+  console.log('Connected to the prescweb_main.db database.');
+});
+
+// API routes
+
+// Medicine Search API
+app.get('/api/medicines/search', (req, res) => {
+  const query = req.query.q;
+  const sql = `
+    SELECT * FROM medicines
+    WHERE generic_name LIKE ? OR brand_names LIKE ?
+    ORDER BY
+      CASE
+        WHEN brand_names LIKE ? THEN 1
+        WHEN brand_names LIKE ? THEN 2
+        WHEN generic_name LIKE ? THEN 3
+        ELSE 4
+      END
+    LIMIT 20
+  `;
+  const exactMatch = query;
+  const startsWith = `${query}%`;
+  const contains = `%${query}%`;
+
+  db.all(sql, [contains, contains, exactMatch, startsWith, contains], (err, rows) => {
     if (err) {
-        console.error('Error opening database:', err.message);
-    } else {
-        console.log('Connected to SQLite database.');
-        db.run(`CREATE TABLE IF NOT EXISTS patients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            age INTEGER NOT NULL,
-            gender TEXT,
-            phone TEXT,
-            medicine_data TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`);
+      res.status(500).json({ error: err.message });
+      return;
     }
+    // The brand_names are stored as a string, so we need to parse them
+    const results = rows.map(row => ({
+      ...row,
+      brand_names: row.brand_names.split(',').map(name => name.trim())
+    }));
+    res.json(results);
+  });
 });
 
-// Authentication
-const requireLogin = (req, res, next) => {
-    if (!req.session.userId) return res.redirect('/login.html');
-    next();
-};
+// Get medicine details by generic name
+app.get('/api/medicines/details/:generic_name', (req, res) => {
+  const generic_name = req.params.generic_name;
+  const sql = 'SELECT * FROM medicines WHERE generic_name = ?';
 
-// Routes
-app.get('/', (req, res) => res.redirect('/dashboard.html'));
-
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    console.log('Login attempt:', username, password); // Debug log
-    
-    if (username === 'admin' && password === 'password') {
-        req.session.userId = 1;
-        res.json({ success: true });
-    } else {
-        res.json({ success: false, message: 'Invalid credentials' });
+  db.all(sql, [generic_name], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
     }
+
+    if (rows.length === 0) {
+      res.status(404).json({ message: 'Medicine not found' });
+      return;
+    }
+
+    const brand_names = [...new Set(rows.flatMap(row => row.brand_names.split(',').map(name => name.trim())))];
+
+    const forms_and_strengths_map = new Map();
+    rows.forEach(row => {
+      const dosage_form = row.dosage_form;
+      const strengths_for_form = row.strength.split(',').map(s => s.trim());
+
+      if (!forms_and_strengths_map.has(dosage_form)) {
+        forms_and_strengths_map.set(dosage_form, new Set());
+      }
+      strengths_for_form.forEach(s => forms_and_strengths_map.get(dosage_form).add(s));
+    });
+
+    const forms_and_strengths = Array.from(forms_and_strengths_map.entries()).map(([form, strengthsSet]) => ({
+      dosage_form: form,
+      strengths: Array.from(strengthsSet).sort()
+    }));
+
+    const medicineDetails = {
+      generic_name: rows[0].generic_name,
+      brand_names: brand_names,
+      forms_and_strengths: forms_and_strengths,
+      indication: rows[0].indication,
+      contraindication: rows[0].contraindication,
+      side_effects: rows[0].side_effects,
+    };
+
+    res.json(medicineDetails);
+  });
 });
 
-app.get('/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/login.html');
+// NEW: Save Prescription Pad Design
+app.post('/api/prescription-pad/save', (req, res) => {
+  const { designData, medications, patientInfo } = req.body;
+  
+  const prescriptionData = {
+    design: designData,
+    medications: medications,
+    patientInfo: patientInfo,
+    createdAt: new Date().toISOString()
+  };
+
+  const sql = 'INSERT INTO prescription_pads (design_data, patient_info) VALUES (?, ?)';
+  db.run(sql, [JSON.stringify(prescriptionData), JSON.stringify(patientInfo)], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({
+      message: 'Prescription pad saved successfully',
+      id: this.lastID
+    });
+  });
 });
 
-// Patient Routes
-app.post('/add-patient', requireLogin, (req, res) => {
-    const { name, age, gender, phone, medicines } = req.body;
-    const medicineData = JSON.stringify(medicines || []);
+// NEW: Load Prescription Pad Design
+app.get('/api/prescription-pad/load/:id', (req, res) => {
+  const id = req.params.id;
+  const sql = 'SELECT * FROM prescription_pads WHERE id = ?';
+  
+  db.get(sql, [id], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!row) {
+      res.status(404).json({ message: 'Prescription pad not found' });
+      return;
+    }
     
-    db.run(`INSERT INTO patients (name, age, gender, phone, medicine_data) VALUES (?, ?, ?, ?, ?)`, 
-    [name, age, gender, phone, medicineData], function(err) {
-        if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({ success: false, message: 'Failed to add patient' });
+    const prescriptionData = JSON.parse(row.design_data);
+    res.json(prescriptionData);
+  });
+});
+
+// NEW: Get All Saved Prescription Pads
+app.get('/api/prescription-pads', (req, res) => {
+  const sql = 'SELECT id, patient_info, created_at FROM prescription_pads ORDER BY created_at DESC';
+  
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    const pads = rows.map(row => ({
+      id: row.id,
+      patientInfo: JSON.parse(row.patient_info),
+      createdAt: row.created_at
+    }));
+    
+    res.json(pads);
+  });
+});
+
+// NEW: Medicine Autocomplete for Pad
+app.get('/api/pad/medicines/autocomplete', (req, res) => {
+  const query = req.query.q;
+  if (!query || query.length < 2) {
+    return res.json([]);
+  }
+
+  const sql = `
+    SELECT generic_name, brand_names, dosage_form, strength 
+    FROM medicines 
+    WHERE generic_name LIKE ? OR brand_names LIKE ?
+    LIMIT 10
+  `;
+  const searchTerm = `%${query}%`;
+
+  db.all(sql, [searchTerm, searchTerm], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+
+    const suggestions = rows.map(row => ({
+      generic_name: row.generic_name,
+      brand_names: row.brand_names.split(',').map(name => name.trim()),
+      dosage_form: row.dosage_form,
+      strength: row.strength
+    }));
+
+    res.json(suggestions);
+  });
+});
+
+// Prescription API - Create new prescription
+app.post('/api/prescriptions', (req, res) => {
+  const { patientDetails, chiefComplaints, drugHistory, investigation, diagnosis, advice, followup, prescriptionItems } = req.body;
+  const prescription_data = JSON.stringify(req.body);
+  const patient_id = patientDetails.regNo;
+
+  const sql = 'INSERT INTO prescriptions (patient_id, prescription_data) VALUES (?, ?)';
+  db.run(sql, [patient_id, prescription_data], function (err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({
+      message: 'Prescription created successfully',
+      prescription: {
+        id: this.lastID,
+        ...req.body
+      }
+    });
+  });
+});
+
+// Get all prescriptions
+app.get('/api/prescriptions', (req, res) => {
+  const sql = 'SELECT * FROM prescriptions ORDER BY created_at DESC';
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    const prescriptions = rows.map(row => {
+        const data = JSON.parse(row.prescription_data);
+        return {
+            id: row.id,
+            prescriptionNo: `PR${row.id}`,
+            patientName: data.patientDetails.name,
+            date: new Date(row.created_at).toLocaleDateString('en-GB'),
+            diagnosis: data.diagnosis,
+            medications: data.prescriptionItems.filter(item => !item.isAdvice)
         }
-        res.json({ success: true, message: 'Patient added successfully' });
     });
+    res.json({
+        message: 'Prescriptions retrieved successfully',
+        data: prescriptions
+    });
+  });
 });
 
-app.get('/api/patients', requireLogin, (req, res) => {
-    db.all(`SELECT * FROM patients ORDER BY created_at DESC`, [], (err, rows) => {
+// Get a single prescription by ID
+app.get('/api/prescriptions/:id', (req, res) => {
+  const id = req.params.id;
+  const sql = 'SELECT * FROM prescriptions WHERE id = ?';
+  db.get(sql, [id], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!row) {
+      res.status(404).json({ message: 'Prescription not found' });
+      return;
+    }
+    res.json({
+      message: 'Prescription retrieved successfully',
+      data: JSON.parse(row.prescription_data)
+    });
+  });
+});
+
+// Dashboard API - Get statistics
+app.get('/api/dashboard/stats', (req, res) => {
+    const stats = {};
+    const today = new Date().toISOString().slice(0, 10);
+
+    db.get('SELECT COUNT(*) as count FROM prescriptions WHERE DATE(created_at) = ?', [today], (err, row) => {
         if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({ error: 'Failed to fetch patients' });
+            res.status(500).json({ error: err.message });
+            return;
         }
-        const patients = rows.map(patient => ({
-            ...patient,
-            medicine_data: patient.medicine_data ? JSON.parse(patient.medicine_data) : []
-        }));
-        res.json(patients);
+        stats.prescriptionsToday = row.count;
+
+        db.get('SELECT COUNT(DISTINCT patient_id) as count FROM prescriptions', [], (err, row) => {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            }
+            stats.totalPatients = row.count;
+            // These are just placeholders for now
+            stats.pendingReviews = 8;
+            stats.medicationsPrescribed = 36;
+
+            res.json(stats);
+        });
     });
 });
 
-app.delete('/delete-patient/:id', requireLogin, (req, res) => {
-    const patientId = req.params.id;
-    db.run('DELETE FROM patients WHERE id = ?', [patientId], function(err) {
-        if (err) return res.status(500).json({ success: false, message: 'Failed to delete patient' });
-        res.json({ success: true, message: 'Patient deleted successfully' });
+// Templates API - Get all templates
+app.get('/api/templates', (req, res) => {
+  const sql = 'SELECT id, name, template_data FROM templates';
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows.map(row => ({id: row.id, name: row.name, templateData: JSON.parse(row.template_data)})));
+  });
+});
+
+// Templates API - Save template
+app.post('/api/templates', (req, res) => {
+  const { name, templateData } = req.body;
+  const template_data = JSON.stringify(templateData);
+
+  const sql = 'INSERT INTO templates (name, template_data) VALUES (?, ?)';
+  db.run(sql, [name, template_data], function (err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({
+      message: 'Template saved successfully',
+      template: {
+        id: this.lastID,
+        name,
+        templateData
+      }
+    });
+  });
+});
+
+// Templates API - Delete template
+app.delete('/api/templates/:id', (req, res) => {
+    const id = req.params.id;
+    const sql = 'DELETE FROM templates WHERE id = ?';
+    db.run(sql, [id], function (err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        if (this.changes === 0) {
+            res.status(404).json({ message: `Template with id ${id} not found` });
+            return;
+        }
+        res.json({ message: `Template with id ${id} deleted` });
     });
 });
 
-app.listen(port, () => {
-    console.log(`🚀 Server running at http://localhost:${port}`);
-    console.log(`📁 Serving frontend from: ${path.join(__dirname, '../frontend')}`);
+// NEW: Database initialization for prescription pads
+app.get('/api/init-db', (req, res) => {
+  const createTableSQL = `
+    CREATE TABLE IF NOT EXISTS prescription_pads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      design_data TEXT NOT NULL,
+      patient_info TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  
+  db.run(createTableSQL, (err) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Prescription pads table initialized successfully' });
+  });
+});
+
+// Update existing template
+app.put('/api/templates/:id', (req, res) => {
+  const id = req.params.id;
+  const { name, templateData } = req.body;
+  const template_data = JSON.stringify(templateData);
+
+  const sql = 'UPDATE templates SET name = ?, template_data = ? WHERE id = ?';
+  db.run(sql, [name, template_data, id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (this.changes === 0) {
+      res.status(404).json({ message: `Template with id ${id} not found` });
+      return;
+    }
+    res.json({
+      message: 'Template updated successfully',
+      template: {
+        id: parseInt(id),
+        name,
+        templateData
+      }
+    });
+  });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Serving frontend from: ${path.join(__dirname, '../frontend')}`);
 });
