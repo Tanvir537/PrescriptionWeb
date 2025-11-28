@@ -890,6 +890,30 @@ body {
     padding: 20px;
 }
 
+.template-actions {
+    margin-bottom: 20px;
+    padding: 0 20px;
+}
+
+.create-template-btn {
+    background: var(--success-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.create-template-btn:hover {
+    background: #229954;
+    transform: translateY(-2px);
+}
+
 .template-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -909,49 +933,83 @@ body {
     box-shadow: 0 6px 12px rgba(0,0,0,0.15);
 }
 
-.template-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--primary-color);
-    margin-bottom: 8px;
+.template-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
 }
 
-.template-description {
+.template-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 0;
+}
+
+.template-date {
+    font-size: 10px;
+    color: var(--text-color);
+    opacity: 0.7;
+}
+
+.template-preview {
     font-size: 11px;
     color: var(--text-color);
     margin-bottom: 12px;
 }
 
+.template-preview p {
+    margin: 2px 0;
+}
+
 .template-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
+    justify-content: flex-end;
 }
 
 .template-btn {
-    padding: 5px 10px;
+    padding: 6px 12px;
     border: none;
-    border-radius: 3px;
+    border-radius: 4px;
     font-size: 10px;
     cursor: pointer;
     transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.template-btn:hover {
+    transform: translateY(-1px);
 }
 
 .load-btn {
-    background-color: var(--success-color);
+    background: var(--secondary-color);
     color: white;
 }
 
 .load-btn:hover {
-    background-color: #229954;
+    background: #2980b9;
+}
+
+.edit-btn {
+    background: var(--warning-color);
+    color: white;
+}
+
+.edit-btn:hover {
+    background: #e67e22;
 }
 
 .delete-btn {
-    background-color: var(--danger-color);
+    background: var(--danger-color);
     color: white;
 }
 
 .delete-btn:hover {
-    background-color: #c0392b;
+    background: #c0392b;
 }
 
 /* --- Profile Page --- */
@@ -1167,126 +1225,8 @@ body {
         display: none;
     }
 }
+
 /* --- Template Editor Styles --- */
-.template-actions {
-    margin-bottom: 20px;
-    padding: 0 20px;
-}
-
-.create-template-btn {
-    background: var(--success-color);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: var(--transition);
-}
-
-.create-template-btn:hover {
-    background: #229954;
-    transform: translateY(-2px);
-}
-
-/* Template Grid Improvements */
-.template-card {
-    background: var(--white);
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: var(--shadow);
-    transition: var(--transition);
-    border: 1px solid var(--border-color);
-}
-
-.template-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-}
-
-.template-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 10px;
-}
-
-.template-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--primary-color);
-    margin: 0;
-}
-
-.template-date {
-    font-size: 10px;
-    color: var(--text-color);
-    opacity: 0.7;
-}
-
-.template-preview {
-    font-size: 11px;
-    color: var(--text-color);
-    margin-bottom: 12px;
-}
-
-.template-preview p {
-    margin: 2px 0;
-}
-
-.template-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-}
-
-.template-btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    font-size: 10px;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.template-btn:hover {
-    transform: translateY(-1px);
-}
-
-.load-btn {
-    background: var(--secondary-color);
-    color: white;
-}
-
-.load-btn:hover {
-    background: #2980b9;
-}
-
-.edit-btn {
-    background: var(--warning-color);
-    color: white;
-}
-
-.edit-btn:hover {
-    background: #e67e22;
-}
-
-.delete-btn {
-    background: var(--danger-color);
-    color: white;
-}
-
-.delete-btn:hover {
-    background: #c0392b;
-}
-
-/* Modal Styles */
 .modal {
     display: none;
     position: fixed;
@@ -1305,7 +1245,7 @@ body {
     padding: 0;
     border-radius: 8px;
     width: 90%;
-    max-width: 600px;
+    max-width: 700px;
     max-height: 80vh;
     overflow-y: auto;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
@@ -1353,8 +1293,7 @@ body {
     font-size: 12px;
 }
 
-#templateName,
-#templateContent {
+#templateName {
     width: 100%;
     padding: 8px 12px;
     border: 1px solid var(--border-color);
@@ -1364,25 +1303,91 @@ body {
     transition: var(--transition);
 }
 
-#templateName:focus,
-#templateContent:focus {
+#templateName:focus {
     outline: none;
     border-color: var(--secondary-color);
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
-#templateContent {
-    font-family: 'Courier New', monospace;
-    resize: vertical;
-    min-height: 200px;
+.template-form-sections {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 10px;
 }
 
-#templateForm small {
-    display: block;
-    margin-top: 4px;
-    color: var(--text-color);
-    opacity: 0.7;
-    font-size: 10px;
+.template-section {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.template-section h4 {
+    font-size: 13px;
+    color: var(--primary-color);
+    margin-bottom: 12px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 6px;
+}
+
+.template-section .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.prescription-items-list {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    background: white;
+    margin-bottom: 10px;
+}
+
+.prescription-item-preview {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 5px;
+    font-size: 11px;
+}
+
+.prescription-item-preview.advice {
+    background: #e8f5e8;
+    border-color: #27ae60;
+}
+
+.prescription-item-preview.medication {
+    background: #e3f2fd;
+    border-color: #2196f3;
+}
+
+.no-items {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    font-size: 11px;
+    margin: 10px 0;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
 }
 
 .form-actions {
@@ -1432,6 +1437,25 @@ body {
     grid-column: 1 / -1;
 }
 
+/* Scrollbar styling for template sections */
+.template-form-sections::-webkit-scrollbar {
+    width: 6px;
+}
+
+.template-form-sections::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.template-form-sections::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.template-form-sections::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .modal-content {
@@ -1445,5 +1469,9 @@ body {
     
     .template-btn {
         justify-content: center;
+    }
+    
+    .template-section .form-row {
+        grid-template-columns: 1fr;
     }
 }

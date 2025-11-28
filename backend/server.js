@@ -19,6 +19,118 @@ const db = new sqlite3.Database('../prescweb_main.db', (err) => {
   console.log('Connected to the prescweb_main.db database.');
 });
 
+// Initialize all database tables
+function initializeDatabaseTables() {
+  // Initialize prescription_pads table
+  const createPrescriptionPadsTable = `
+    CREATE TABLE IF NOT EXISTS prescription_pads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      design_data TEXT NOT NULL,
+      patient_info TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  
+  // Initialize templates table
+  const createTemplatesTable = `
+    CREATE TABLE IF NOT EXISTS templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      template_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  
+  // Initialize prescriptions table
+  const createPrescriptionsTable = `
+    CREATE TABLE IF NOT EXISTS prescriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      patient_id TEXT NOT NULL,
+      prescription_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  db.run(createPrescriptionPadsTable, (err) => {
+    if (err) {
+      console.error('Error creating prescription_pads table:', err.message);
+    } else {
+      console.log('Prescription pads table ready');
+    }
+  });
+
+  db.run(createTemplatesTable, (err) => {
+    if (err) {
+      console.error('Error creating templates table:', err.message);
+    } else {
+      console.log('Templates table ready');
+    }
+  });
+
+  db.run(createPrescriptionsTable, (err) => {
+    if (err) {
+      console.error('Error creating prescriptions table:', err.message);
+    } else {
+      console.log('Prescriptions table ready');
+    }
+  });
+}
+
+// Initialize database tables on startup
+initializeDatabaseTables();
+
+// Helper function to validate and sanitize template data
+function sanitizeTemplateData(templateData) {
+  if (!templateData || typeof templateData !== 'object') {
+    return {
+      prescriptionItems: [],
+      advice: "",
+      patientDetails: {
+        name: "",
+        age: "",
+        gender: "",
+        regNo: ""
+      },
+      chiefComplaints: "",
+      drugHistory: "",
+      investigation: "",
+      diagnosis: "",
+      followup: ""
+    };
+  }
+
+  // Ensure all required fields exist with proper structure
+  return {
+    prescriptionItems: Array.isArray(templateData.prescriptionItems) 
+      ? templateData.prescriptionItems.map(item => ({
+          id: item.id || Date.now(),
+          brand: item.brand || "",
+          generic: item.generic || "",
+          form: item.form || "",
+          strength: item.strength || "",
+          dosage: item.dosage || "",
+          timing: item.timing || "",
+          duration: item.duration || "",
+          instructions: item.instructions || "",
+          isAdvice: item.isAdvice || false,
+          advice: item.advice || ""
+        }))
+      : [],
+    advice: templateData.advice || "",
+    patientDetails: {
+      name: templateData.patientDetails?.name || "",
+      age: templateData.patientDetails?.age || "",
+      gender: templateData.patientDetails?.gender || "",
+      regNo: templateData.patientDetails?.regNo || ""
+    },
+    chiefComplaints: templateData.chiefComplaints || "",
+    drugHistory: templateData.drugHistory || "",
+    investigation: templateData.investigation || "",
+    diagnosis: templateData.diagnosis || "",
+    followup: templateData.followup || ""
+  };
+}
+
 // API routes
 
 // Medicine Search API
@@ -294,23 +406,55 @@ app.get('/api/dashboard/stats', (req, res) => {
 
 // Templates API - Get all templates
 app.get('/api/templates', (req, res) => {
-  const sql = 'SELECT id, name, template_data FROM templates';
+  const sql = 'SELECT id, name, template_data, created_at FROM templates ORDER BY created_at DESC';
   db.all(sql, [], (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json(rows.map(row => ({id: row.id, name: row.name, templateData: JSON.parse(row.template_data)})));
+    
+    const templates = rows.map(row => {
+      try {
+        const templateData = JSON.parse(row.template_data);
+        return {
+          id: row.id, 
+          name: row.name, 
+          templateData: sanitizeTemplateData(templateData),
+          createdAt: row.created_at
+        };
+      } catch (parseError) {
+        console.error(`Error parsing template data for template ${row.id}:`, parseError);
+        return {
+          id: row.id, 
+          name: row.name, 
+          templateData: sanitizeTemplateData(null), // Return clean default
+          createdAt: row.created_at
+        };
+      }
+    });
+    
+    res.json(templates);
   });
 });
 
 // Templates API - Save template
 app.post('/api/templates', (req, res) => {
   const { name, templateData } = req.body;
-  const template_data = JSON.stringify(templateData);
+  
+  if (!name || name.trim() === '') {
+    return res.status(400).json({ error: 'Template name is required' });
+  }
+
+  if (!templateData || typeof templateData !== 'object') {
+    return res.status(400).json({ error: 'Valid template data is required' });
+  }
+
+  // Sanitize and validate template data
+  const sanitizedData = sanitizeTemplateData(templateData);
+  const template_data = JSON.stringify(sanitizedData);
 
   const sql = 'INSERT INTO templates (name, template_data) VALUES (?, ?)';
-  db.run(sql, [name, template_data], function (err) {
+  db.run(sql, [name.trim(), template_data], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -319,8 +463,8 @@ app.post('/api/templates', (req, res) => {
       message: 'Template saved successfully',
       template: {
         id: this.lastID,
-        name,
-        templateData
+        name: name.trim(),
+        templateData: sanitizedData
       }
     });
   });
@@ -367,10 +511,21 @@ app.get('/api/init-db', (req, res) => {
 app.put('/api/templates/:id', (req, res) => {
   const id = req.params.id;
   const { name, templateData } = req.body;
-  const template_data = JSON.stringify(templateData);
+  
+  if (!name || name.trim() === '') {
+    return res.status(400).json({ error: 'Template name is required' });
+  }
+
+  if (!templateData || typeof templateData !== 'object') {
+    return res.status(400).json({ error: 'Valid template data is required' });
+  }
+
+  // Sanitize and validate template data
+  const sanitizedData = sanitizeTemplateData(templateData);
+  const template_data = JSON.stringify(sanitizedData);
 
   const sql = 'UPDATE templates SET name = ?, template_data = ? WHERE id = ?';
-  db.run(sql, [name, template_data, id], function(err) {
+  db.run(sql, [name.trim(), template_data, id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -383,10 +538,46 @@ app.put('/api/templates/:id', (req, res) => {
       message: 'Template updated successfully',
       template: {
         id: parseInt(id),
-        name,
-        templateData
+        name: name.trim(),
+        templateData: sanitizedData
       }
     });
+  });
+});
+
+// NEW: Initialize all tables endpoint
+app.get('/api/init-all-tables', (req, res) => {
+  initializeDatabaseTables();
+  res.json({ message: 'All database tables initialized successfully' });
+});
+
+// NEW: Get template by ID
+app.get('/api/templates/:id', (req, res) => {
+  const id = req.params.id;
+  const sql = 'SELECT * FROM templates WHERE id = ?';
+  
+  db.get(sql, [id], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!row) {
+      res.status(404).json({ message: 'Template not found' });
+      return;
+    }
+    
+    try {
+      const templateData = JSON.parse(row.template_data);
+      res.json({
+        id: row.id,
+        name: row.name,
+        templateData: sanitizeTemplateData(templateData),
+        createdAt: row.created_at
+      });
+    } catch (parseError) {
+      console.error(`Error parsing template data for template ${id}:`, parseError);
+      res.status(500).json({ error: 'Invalid template data format' });
+    }
   });
 });
 

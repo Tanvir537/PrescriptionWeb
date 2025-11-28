@@ -14,6 +14,7 @@ async function searchMedicines(query) {
 let prescriptionItems = [];
 let selectedMedicine = null;
 let expandedItems = new Set();
+let currentTemplateId = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -300,46 +301,78 @@ function showTemplateEditor(template = null) {
     if (template) {
         title.textContent = 'Edit Template';
         document.getElementById('templateId').value = template.id;
-        document.getElementById('templateName').value = template.name;
-        document.getElementById('templateContent').value = JSON.stringify(template.templateData, null, 2);
+        document.getElementById('templateName').value = template.name || '';
+        
+        // Load template data into form fields
+        const templateData = template.templateData || {};
+        
+        // Patient Details
+        document.getElementById('templatePatientName').value = templateData.patientDetails?.name || '';
+        document.getElementById('templatePatientAge').value = templateData.patientDetails?.age || '';
+        document.getElementById('templatePatientGender').value = templateData.patientDetails?.gender || '';
+        document.getElementById('templatePatientRegNo').value = templateData.patientDetails?.regNo || '';
+        
+        // Medical Information
+        document.getElementById('templateChiefComplaints').value = templateData.chiefComplaints || '';
+        document.getElementById('templateDrugHistory').value = templateData.drugHistory || '';
+        document.getElementById('templateInvestigation').value = templateData.investigation || '';
+        document.getElementById('templateDiagnosis').value = templateData.diagnosis || '';
+        
+        // Advice & Follow-up
+        document.getElementById('templateAdvice').value = templateData.advice || '';
+        document.getElementById('templateFollowup').value = templateData.followup || '';
+        
+        // Prescription Items
+        loadTemplatePrescriptionItems(templateData.prescriptionItems || []);
     } else {
         title.textContent = 'Create New Template';
         document.getElementById('templateForm').reset();
         document.getElementById('templateId').value = '';
-        
-        // Set default template structure
-        const defaultTemplate = {
-            prescriptionItems: [],
-            advice: "",
-            patientDetails: {
-                name: "",
-                age: "",
-                gender: "",
-                regNo: ""
-            },
-            chiefComplaints: "",
-            drugHistory: "",
-            investigation: "",
-            diagnosis: "",
-            followup: ""
-        };
-        document.getElementById('templateContent').value = JSON.stringify(defaultTemplate, null, 2);
+        loadTemplatePrescriptionItems([]);
     }
     
     modal.style.display = 'block';
 }
 
-function closeTemplateEditor() {
-    document.getElementById('templateEditorModal').style.display = 'none';
+function loadTemplatePrescriptionItems(items) {
+    const container = document.getElementById('templatePrescriptionItems');
+    
+    if (!items || items.length === 0) {
+        container.innerHTML = '<p class="no-items">No prescription items in template</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    items.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = `prescription-item-preview ${item.isAdvice ? 'advice' : 'medication'}`;
+        
+        if (item.isAdvice) {
+            itemElement.innerHTML = `
+                <strong>📋 Advice:</strong> ${item.advice || ''}
+            `;
+        } else {
+            itemElement.innerHTML = `
+                <strong>💊 ${item.brand || item.generic || 'Medication'}:</strong> 
+                ${item.dosage || ''} ${item.timing || ''} ${item.duration || ''}
+            `;
+        }
+        
+        container.appendChild(itemElement);
+    });
 }
 
-// Renamed this function to avoid conflict with existing saveTemplate
+function includeCurrentPrescription() {
+    loadTemplatePrescriptionItems(prescriptionItems);
+    showNotification('Current prescription items included in template');
+}
+
+// Updated save function for template form
 async function saveTemplateForm(event) {
     event.preventDefault();
     
     const id = document.getElementById('templateId').value;
     const name = document.getElementById('templateName').value.trim();
-    const content = document.getElementById('templateContent').value.trim();
     
     if (!name) {
         showNotification('Please enter a template name', 'error');
@@ -347,13 +380,29 @@ async function saveTemplateForm(event) {
     }
     
     try {
-        let templateData;
-        try {
-            templateData = JSON.parse(content);
-        } catch (e) {
-            showNotification('Invalid JSON format in template content', 'error');
-            return;
-        }
+        // Get current prescription items from the preview
+        const prescriptionItems = [];
+        const previewItems = document.getElementById('templatePrescriptionItems').children;
+        
+        // For now, we'll use the current prescription items
+        // In a more advanced version, you'd want to store the actual item data
+        const currentPrescriptionItems = prescriptionItems; // This uses the global prescriptionItems
+        
+        const templateData = {
+            prescriptionItems: currentPrescriptionItems,
+            advice: document.getElementById('templateAdvice').value,
+            patientDetails: {
+                name: document.getElementById('templatePatientName').value,
+                age: document.getElementById('templatePatientAge').value,
+                gender: document.getElementById('templatePatientGender').value,
+                regNo: document.getElementById('templatePatientRegNo').value
+            },
+            chiefComplaints: document.getElementById('templateChiefComplaints').value,
+            drugHistory: document.getElementById('templateDrugHistory').value,
+            investigation: document.getElementById('templateInvestigation').value,
+            diagnosis: document.getElementById('templateDiagnosis').value,
+            followup: document.getElementById('templateFollowup').value
+        };
         
         const url = id ? `http://127.0.0.1:3001/api/templates/${id}` : 'http://127.0.0.1:3001/api/templates';
         const method = id ? 'PUT' : 'POST';
@@ -372,21 +421,22 @@ async function saveTemplateForm(event) {
         if (response.ok) {
             showNotification(`Template ${id ? 'updated' : 'created'} successfully`);
             closeTemplateEditor();
-            loadAllTemplates(); // Reload the template list
+            loadAllTemplates();
         } else {
-            throw new Error('Failed to save template');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to save template');
         }
     } catch (error) {
         console.error('Error saving template:', error);
-        showNotification('Error saving template', 'error');
+        showNotification('Error saving template: ' + error.message, 'error');
     }
 }
 
-function editTemplate(template) {
-    showTemplateEditor(template);
+function closeTemplateEditor() {
+    document.getElementById('templateEditorModal').style.display = 'none';
 }
 
-// Renamed this function to avoid conflict
+// Load all templates
 async function loadAllTemplates() {
     try {
         const response = await fetch('http://127.0.0.1:3001/api/templates');
@@ -405,16 +455,20 @@ async function loadAllTemplates() {
         }
         
         templates.forEach(template => {
+            const templateData = template.templateData || {};
+            const prescriptionItems = Array.isArray(templateData.prescriptionItems) ? templateData.prescriptionItems : [];
+            
             const templateCard = document.createElement('div');
             templateCard.className = 'template-card';
             templateCard.innerHTML = `
                 <div class="template-header">
                     <h3 class="template-name">${template.name}</h3>
-                    <div class="template-date">${new Date().toLocaleDateString()}</div>
+                    <div class="template-date">${new Date(template.createdAt).toLocaleDateString()}</div>
                 </div>
                 <div class="template-preview">
-                    <p><strong>Medications:</strong> ${template.templateData.prescriptionItems?.length || 0}</p>
-                    <p><strong>Advice:</strong> ${template.templateData.advice ? 'Yes' : 'No'}</p>
+                    <p><strong>Patient:</strong> ${templateData.patientDetails?.name || 'Not set'}</p>
+                    <p><strong>Diagnosis:</strong> ${templateData.diagnosis ? 'Yes' : 'No'}</p>
+                    <p><strong>Medications:</strong> ${prescriptionItems.length} items</p>
                 </div>
                 <div class="template-actions">
                     <button class="template-btn load-btn" onclick="loadTemplateData(${template.id})">
@@ -439,30 +493,34 @@ async function loadAllTemplates() {
 // Update the existing loadTemplateData function to handle template loading
 async function loadTemplateData(templateId) {
     try {
-        const response = await fetch('http://127.0.0.1:3001/api/templates');
-        const templates = await response.json();
-        const template = templates.find(t => t.id === templateId);
+        const response = await fetch(`http://127.0.0.1:3001/api/templates/${templateId}`);
+        const template = await response.json();
         
-        if (template) {
+        if (template && template.templateData) {
+            const templateData = template.templateData;
+            
             // Load template data into the prescription form
-            if (template.templateData.patientDetails) {
-                document.getElementById('patientName').value = template.templateData.patientDetails.name || '';
-                document.getElementById('patientAge').value = template.templateData.patientDetails.age || '';
-                document.getElementById('patientGender').value = template.templateData.patientDetails.gender || '';
-                document.getElementById('regNoInput').value = template.templateData.patientDetails.regNo || '';
-                document.getElementById('regNoDisplay').textContent = template.templateData.patientDetails.regNo || '';
+            if (templateData.patientDetails) {
+                document.getElementById('patientName').value = templateData.patientDetails.name || '';
+                document.getElementById('patientAge').value = templateData.patientDetails.age || '';
+                document.getElementById('patientGender').value = templateData.patientDetails.gender || '';
+                document.getElementById('regNoInput').value = templateData.patientDetails.regNo || '';
+                document.getElementById('regNoDisplay').textContent = templateData.patientDetails.regNo || '';
             }
             
-            document.getElementById('chiefComplaints').value = template.templateData.chiefComplaints || '';
-            document.getElementById('drugHistory').value = template.templateData.drugHistory || '';
-            document.getElementById('investigationEntry').value = template.templateData.investigation || '';
-            document.getElementById('diagnosis').value = template.templateData.diagnosis || '';
-            document.getElementById('adviceEntry').value = template.templateData.advice || '';
-            document.getElementById('followupEntry').value = template.templateData.followup || '';
+            document.getElementById('chiefComplaints').value = templateData.chiefComplaints || '';
+            document.getElementById('drugHistory').value = templateData.drugHistory || '';
+            document.getElementById('investigationEntry').value = templateData.investigation || '';
+            document.getElementById('diagnosis').value = templateData.diagnosis || '';
+            document.getElementById('adviceEntry').value = templateData.advice || '';
+            document.getElementById('followupEntry').value = templateData.followup || '';
             
             // Load prescription items
-            if (template.templateData.prescriptionItems && template.templateData.prescriptionItems.length > 0) {
-                prescriptionItems = template.templateData.prescriptionItems;
+            if (templateData.prescriptionItems && Array.isArray(templateData.prescriptionItems)) {
+                prescriptionItems = templateData.prescriptionItems.map(item => ({
+                    ...item,
+                    id: item.id || Date.now() + Math.random() // Ensure each item has an ID
+                }));
                 renderPrescriptionList();
             }
             
@@ -470,7 +528,7 @@ async function loadTemplateData(templateId) {
             navigateTo('prescription', document.querySelector('.nav-item[onclick*="prescription"]'));
             showNotification(`Loaded template: ${template.name}`);
         } else {
-            showNotification('Template not found', 'error');
+            showNotification('Template not found or invalid format', 'error');
         }
     } catch (error) {
         console.error('Error loading template:', error);
@@ -478,7 +536,10 @@ async function loadTemplateData(templateId) {
     }
 }
 
-// Renamed this function to avoid conflict
+function editTemplate(template) {
+    showTemplateEditor(template);
+}
+
 async function deleteTemplateItem(templateId) {
     if (!confirm('Are you sure you want to delete this template? This action cannot be undone.')) {
         return;
@@ -501,7 +562,348 @@ async function deleteTemplateItem(templateId) {
     }
 }
 
-// ========== EXISTING FUNCTIONS (KEEP THESE AS IS) ==========
+// ========== TEMPLATE SELECTION & PRINTING SYSTEM ==========
+
+// Function to show template selection modal for printing
+function showPrintTemplateModal() {
+    // Create modal for template selection
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px;">
+            <h3 style="margin-bottom: 15px;">Select Template for Printing</h3>
+            <div id="printTemplateList" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+                <p>Loading templates...</p>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button onclick="this.closest('div').closest('div').remove()" 
+                        style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Cancel
+                </button>
+                <button onclick="generatePrintablePrescriptionWithTemplate()" 
+                        style="padding: 8px 16px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Print with Selected Template
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Load templates for selection
+    loadPrintTemplates();
+}
+
+// Load templates for printing selection
+async function loadPrintTemplates() {
+    try {
+        const response = await fetch('http://127.0.0.1:3001/api/templates');
+        const templates = await response.json();
+        
+        const templateList = document.getElementById('printTemplateList');
+        templateList.innerHTML = '';
+        
+        if (templates.length === 0) {
+            templateList.innerHTML = '<p>No templates available. Please create a template first.</p>';
+            return;
+        }
+        
+        templates.forEach(template => {
+            const templateItem = document.createElement('div');
+            templateItem.style.cssText = `
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                margin-bottom: 8px;
+                cursor: pointer;
+                transition: background 0.2s;
+            `;
+            
+            templateItem.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="radio" name="printTemplate" value="${template.id}" 
+                           ${currentTemplateId === template.id ? 'checked' : ''} 
+                           onchange="currentTemplateId = this.value">
+                    <div>
+                        <strong>${template.name}</strong>
+                        <div style="font-size: 12px; color: #666;">
+                            Created: ${new Date(template.createdAt).toLocaleDateString()}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            templateList.appendChild(templateItem);
+        });
+        
+        // Set first template as default if none selected
+        if (!currentTemplateId && templates.length > 0) {
+            currentTemplateId = templates[0].id;
+            templateList.querySelector('input[type="radio"]').checked = true;
+        }
+    } catch (error) {
+        console.error('Error loading templates for printing:', error);
+        document.getElementById('printTemplateList').innerHTML = '<p>Error loading templates</p>';
+    }
+}
+
+// Generate printable prescription with selected template
+async function generatePrintablePrescriptionWithTemplate() {
+    if (!currentTemplateId) {
+        showNotification('Please select a template first', 'error');
+        return;
+    }
+    
+    try {
+        // Get the selected template
+        const templateResponse = await fetch(`http://127.0.0.1:3001/api/templates/${currentTemplateId}`);
+        const template = await templateResponse.json();
+        
+        if (!template || !template.templateData) {
+            showNotification('Error loading template data', 'error');
+            return;
+        }
+        
+        // Generate the prescription HTML with template design
+        const prescriptionHTML = generatePrescriptionHTML(template.templateData);
+        
+        // Open print window
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Prescription</title>
+                <style>
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        margin: 0;
+                        padding: 20px;
+                        color: #333;
+                    }
+                    .prescription-container {
+                        max-width: 800px;
+                        margin: 0 auto;
+                        border: 1px solid #ccc;
+                        padding: 20px;
+                        position: relative;
+                    }
+                    .header { 
+                        text-align: center; 
+                        border-bottom: 2px solid #2c3e50;
+                        padding-bottom: 15px;
+                        margin-bottom: 20px;
+                    }
+                    .doctor-info {
+                        margin-bottom: 10px;
+                    }
+                    .patient-info {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                        gap: 10px;
+                        margin-bottom: 20px;
+                        padding: 10px;
+                        background: #f8f9fa;
+                        border-radius: 4px;
+                    }
+                    .patient-field {
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .patient-field label {
+                        font-size: 12px;
+                        color: #666;
+                        margin-bottom: 2px;
+                    }
+                    .rx-symbol {
+                        text-align: center;
+                        font-size: 24px;
+                        margin: 20px 0;
+                        color: #2c3e50;
+                    }
+                    .medication-section {
+                        margin: 20px 0;
+                    }
+                    .medication-item {
+                        margin-bottom: 15px;
+                        padding-bottom: 10px;
+                        border-bottom: 1px solid #eee;
+                    }
+                    .med-name {
+                        font-weight: bold;
+                        color: #2c3e50;
+                        margin-bottom: 5px;
+                    }
+                    .med-details {
+                        font-size: 14px;
+                        color: #666;
+                    }
+                    .advice-section, .followup-section {
+                        margin: 20px 0;
+                        padding: 15px;
+                        background: #f8f9fa;
+                        border-radius: 4px;
+                    }
+                    .section-title {
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                        color: #2c3e50;
+                    }
+                    .footer {
+                        margin-top: 30px;
+                        padding-top: 15px;
+                        border-top: 1px solid #ccc;
+                        text-align: center;
+                        font-size: 12px;
+                        color: #666;
+                    }
+                    @media print {
+                        body { padding: 0; }
+                        .prescription-container { 
+                            border: none; 
+                            padding: 0;
+                            max-width: 100%;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                ${prescriptionHTML}
+            </body>
+            </html>
+        `);
+        
+        printWindow.document.close();
+        
+        // Wait for content to load then print
+        setTimeout(() => {
+            printWindow.print();
+            // Don't close the window immediately to allow user to cancel print
+        }, 500);
+        
+        // Close the template selection modal
+        document.querySelector('.modal')?.remove();
+        
+    } catch (error) {
+        console.error('Error generating printable prescription:', error);
+        showNotification('Error generating printable prescription', 'error');
+    }
+}
+
+// Generate prescription HTML based on template data
+function generatePrescriptionHTML(templateData) {
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('en-GB');
+    
+    return `
+        <div class="prescription-container">
+            <div class="header">
+                <div class="doctor-info">
+                    <h2>${templateData.patientDetails?.name || 'Dr. John Smith'}</h2>
+                    <p>${templateData.patientDetails?.regNo || 'MBBS, MD - Cardiology'}</p>
+                    <p>License No: ${templateData.patientDetails?.regNo || 'MED12345'}</p>
+                </div>
+            </div>
+            
+            <div class="patient-info">
+                <div class="patient-field">
+                    <label>Patient Name</label>
+                    <span>${document.getElementById('patientName').value || 'Not specified'}</span>
+                </div>
+                <div class="patient-field">
+                    <label>Age</label>
+                    <span>${document.getElementById('patientAge').value || 'Not specified'}</span>
+                </div>
+                <div class="patient-field">
+                    <label>Gender</label>
+                    <span>${document.getElementById('patientGender').value || 'Not specified'}</span>
+                </div>
+                <div class="patient-field">
+                    <label>Date</label>
+                    <span>${formattedDate}</span>
+                </div>
+            </div>
+            
+            ${templateData.chiefComplaints ? `
+                <div class="advice-section">
+                    <div class="section-title">Chief Complaints</div>
+                    <p>${templateData.chiefComplaints}</p>
+                </div>
+            ` : ''}
+            
+            ${templateData.diagnosis ? `
+                <div class="advice-section">
+                    <div class="section-title">Diagnosis</div>
+                    <p>${templateData.diagnosis}</p>
+                </div>
+            ` : ''}
+            
+            <div class="rx-symbol">℞</div>
+            
+            <div class="medication-section">
+                <div class="section-title">Medications</div>
+                ${prescriptionItems.map(item => {
+                    if (item.isAdvice) {
+                        return `
+                            <div class="medication-item">
+                                <div class="med-name">Advice</div>
+                                <div class="med-details">${item.advice || ''}</div>
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="medication-item">
+                                <div class="med-name">${item.brand} ${item.strength} (${item.form})</div>
+                                <div class="med-details">
+                                    ${item.dosage} | ${item.timing} | ${item.duration}
+                                    ${item.instructions ? ` | ${item.instructions}` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }).join('')}
+            </div>
+            
+            ${templateData.advice ? `
+                <div class="advice-section">
+                    <div class="section-title">Advice</div>
+                    <p>${templateData.advice}</p>
+                </div>
+            ` : ''}
+            
+            ${templateData.followup ? `
+                <div class="followup-section">
+                    <div class="section-title">Follow-up</div>
+                    <p>${templateData.followup}</p>
+                </div>
+            ` : ''}
+            
+            <div class="footer">
+                <p>${templateData.patientDetails?.name || 'Dr. John Smith'} | ${templateData.patientDetails?.regNo || '123 Medical Center, City'}</p>
+                <p>Contact: +1 234 567 8900 | Email: doctor@hospital.com</p>
+            </div>
+        </div>
+    `;
+}
+
+// Update the existing generatePrintablePrescription function
+function generatePrintablePrescription() {
+    showPrintTemplateModal();
+}
+
+// ========== EXISTING FUNCTIONS ==========
 
 function addToPrescription() {
     if (!selectedMedicine) return;
@@ -767,7 +1169,7 @@ function navigateTo(page, element) {
     } else if (page === 'previous-prescription') {
         loadPreviousPrescriptions();
     } else if (page === 'templates') {
-        loadAllTemplates(); // Use the renamed function
+        loadAllTemplates();
     }
 }
 
@@ -790,7 +1192,19 @@ async function saveTemplate() {
     }
 
     const templateData = {
-        prescriptionItems: prescriptionItems,
+        prescriptionItems: prescriptionItems.map(item => ({
+            id: item.id,
+            brand: item.brand || '',
+            generic: item.generic || '',
+            form: item.form || '',
+            strength: item.strength || '',
+            dosage: item.dosage || '',
+            timing: item.timing || '',
+            duration: item.duration || '',
+            instructions: item.instructions || '',
+            isAdvice: item.isAdvice || false,
+            advice: item.advice || ''
+        })),
         advice: document.getElementById('adviceEntry').value,
         patientDetails: {
             name: document.getElementById('patientName').value,
@@ -856,39 +1270,6 @@ async function loadTemplate() {
         console.error('Error loading templates:', error);
         showNotification('Error loading templates', 'error');
     }
-}
-
-// Keep the original deleteTemplate function (simple version)
-async function deleteTemplate(templateId) {
-    if (!confirm('Are you sure you want to delete this template?')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`http://127.0.0.1:3001/api/templates/${templateId}`, {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            showNotification('Template deleted successfully');
-            loadAllTemplates(); // Refresh the template list
-        } else {
-            showNotification('Error deleting template', 'error');
-        }
-    } catch (error) {
-        console.error('Error deleting template:', error);
-        showNotification('Error deleting template', 'error');
-    }
-}
-
-function generatePrintablePrescription() {
-    // Expand all prescription items for printing
-    prescriptionItems.forEach(item => expandedItems.add(item.id));
-    renderPrescriptionList();
-    
-    // Trigger print dialog
-    window.print();
-    showNotification('Print dialog opened');
 }
 
 function searchPrescriptions() {
@@ -1006,7 +1387,6 @@ async function viewPrescription(id) {
     }
 }
 
-// FIXED: Complete the populatePrescriptionForm function
 function populatePrescriptionForm(data) {
     // Patient Details
     document.getElementById('patientName').value = data.patientDetails?.name || '';
@@ -1060,9 +1440,6 @@ function populatePrescriptionForm(data) {
     prescriptionItems = data.prescriptionItems || [];
     renderPrescriptionList();
 }
-
-// Remove duplicate functions that were causing conflicts
-// (The duplicate loadTemplateById, loadTemplateData, and deleteTemplate functions are removed)
 
 function saveProfile() {
     showNotification('Profile saved successfully', 'success');

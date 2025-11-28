@@ -488,7 +488,7 @@
         </div>
     </div>
 
-    <!-- Add Template Editor Modal (Place this at the bottom, before scripts) -->
+    <!-- Updated Template Editor Modal -->
     <div id="templateEditorModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -501,20 +501,86 @@
                     <label for="templateName">Template Name *</label>
                     <input type="text" id="templateName" required placeholder="Enter template name">
                 </div>
-                <div class="form-group">
-                    <label for="templateContent">Template Content (JSON)</label>
-                    <textarea id="templateContent" rows="12" placeholder='{
-  "prescriptionItems": [],
-  "advice": "",
-  "patientDetails": {
-    "name": "",
-    "age": "",
-    "gender": "",
-    "regNo": ""
-  }
-}'></textarea>
-                    <small>Edit the JSON structure to customize your template</small>
+                
+                <div class="template-form-sections">
+                    <!-- Patient Details Section -->
+                    <div class="template-section">
+                        <h4>Patient Details</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="templatePatientName">Name</label>
+                                <input type="text" id="templatePatientName" placeholder="Patient name">
+                            </div>
+                            <div class="form-group">
+                                <label for="templatePatientAge">Age</label>
+                                <input type="text" id="templatePatientAge" placeholder="Age">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="templatePatientGender">Gender</label>
+                                <select id="templatePatientGender">
+                                    <option value="">Select...</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="templatePatientRegNo">Reg. No.</label>
+                                <input type="text" id="templatePatientRegNo" placeholder="Registration number">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Medical Information Section -->
+                    <div class="template-section">
+                        <h4>Medical Information</h4>
+                        <div class="form-group">
+                            <label for="templateChiefComplaints">Chief Complaints</label>
+                            <textarea id="templateChiefComplaints" placeholder="Chief complaints..." rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="templateDrugHistory">Drug History</label>
+                            <textarea id="templateDrugHistory" placeholder="Drug history..." rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="templateInvestigation">Investigation</label>
+                            <textarea id="templateInvestigation" placeholder="Investigation details..." rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="templateDiagnosis">Diagnosis</label>
+                            <textarea id="templateDiagnosis" placeholder="Diagnosis..." rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Advice & Follow-up Section -->
+                    <div class="template-section">
+                        <h4>Advice & Follow-up</h4>
+                        <div class="form-group">
+                            <label for="templateAdvice">Advice</label>
+                            <textarea id="templateAdvice" placeholder="General advice..." rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="templateFollowup">Follow-up</label>
+                            <textarea id="templateFollowup" placeholder="Follow-up instructions..." rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Current Prescription Items -->
+                    <div class="template-section">
+                        <h4>Prescription Items</h4>
+                        <div id="templatePrescriptionItems" class="prescription-items-list">
+                            <p class="no-items">No prescription items in current prescription</p>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="includeCurrentPrescription()">
+                                Include Current Prescription Items
+                            </button>
+                        </div>
+                    </div>
                 </div>
+
                 <div class="form-actions">
                     <button type="submit" class="save-btn">Save Template</button>
                     <button type="button" class="cancel-btn" onclick="closeTemplateEditor()">Cancel</button>
